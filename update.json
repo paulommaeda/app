@@ -1,0 +1,11 @@
+{
+  "name": "Portal de Serviços — Meu Combustível",
+  "version": "1.1.0",
+  "download_url": "https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.1.0.zip",
+  "sha256": "25c350e48aaf4bddfad6c4eb9827fccee08b38b9205f684a0a89714c32a1f5fe",
+  "requires": "6.6",
+  "requires_php": "8.0",
+  "tested": "7.1",
+  "last_updated": "2026-11-11",
+  "changelog": "<h4>1.1.0</h4><ul><li>Atualização nativa pelo WordPress a partir do GitHub, com integridade do ZIP.</li><li>Importação SQL/JSON ou do banco antigo, com contas nativas WordPress.</li><li>Preservação de senhas compatíveis, vínculos, valores e registros duplicados em KM.</li><li>Processamento retomável e idempotente, sem sobrescrever alterações do novo app.</li></ul><h4>1.0.0</h4><ul><li>Conversão completa para WordPress, portal modular e serviço Meu Combustível.</li></ul>"
+}

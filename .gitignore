@@ -1,0 +1,13 @@
+.DS_Store
+.env
+.env.*
+*.sql
+*.sql.gz
+wp-config.php
+config/database.php
+node_modules/
+vendor/
+__pycache__/
+.tools/
+upload/
+original/
