@@ -146,3 +146,18 @@ faturas ou mensagens reais aos provedores durante os testes locais.
 Gemini, OpenAI e Telegram usam respostas controladas nos testes; não foram
 utilizados credenciais, recebimentos ou áudios reais de produção. A atualização
 mantém o modelo, as chaves, os vínculos, as preferências e os dados existentes.
+
+## Contas e recebimentos previstos — 1.7.0
+
+* 53 verificações de integração: conta única/mensal, valor a definir, previsão separada do saldo, baixa com valor/data reais, repetição idempotente, reversão atômica e restrições de faturas já pagas.
+* Recorrências finitas e sem término, geração inicial de 12 meses, dia âncora 31 em meses curtos, edição somente de previsões pendentes e encerramento sem apagar movimentos realizados.
+* Recebimentos futuros e mensais permanecem pending, inclusive após geração/cron; só a confirmação manual altera o saldo. Cancelamento de previsões não é realização.
+* Fatura mensal automática sem compra aparece sem saldo a pagar; compras e parcelas atualizam seu valor, pagamentos parciais atualizam a mesma fatura e nenhuma segunda despesa é criada.
+* 27 verificações Telegram: texto/áudio, cadastro único/mensal, valor indefinido, complemento de vencimento, conta/categoria própria, confirmação, repetição de webhook/fila/notificação e previsões de recebimento sem baixa.
+* 22 verificações pelo navegador: formulários, baixa/reversão/cancelamento, recorrências, receita futura mensal, recebimento manual e pagamento de fatura pela área de contas.
+* Propriedade verificada para contas, previsões, recorrências e baixas; falhas de pagamento revertem status e gasto. Privacidade remove definições e ocorrências para impedir regeneração.
+* Interfaces em 320, 390, 768 e 1440 pixels, sem transbordamento nem exceções JavaScript. Atualização nativa compara também previsões, recorrências e pendências Telegram.
+
+As respostas dos provedores externos permanecem simuladas nos testes. O cadastro
+pelo bot é exercitado com a validação e o razão financeiro reais do WordPress;
+nenhum pagamento ou recebimento bancário é executado pelo plugin.

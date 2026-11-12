@@ -264,7 +264,42 @@ mensagem e da notificação não duplicam entradas. O financeiro deve estar libe
 para a conta. Pendências expiram em duas horas e são removidas ao desvincular
 o bot ou apagar os dados pelas ferramentas de privacidade do WordPress.
 
-Envie um lançamento por mensagem. Transferências entre contas próprias, estornos
-de cartão e promessas de pagamento não são registrados como novas receitas.
-Para previsões, use **A receber** no portal. O bot registra o que você informou;
+Envie um lançamento por mensagem. Transferências entre contas próprias e estornos de cartão não são novas receitas.
+Desde 1.7.0, promessas de pagamento podem ser cadastradas como **A receber** pelo
+Telegram; somente a confirmação posterior no portal altera o saldo. O bot registra o que você informou;
 não realiza transferência nem consulta seu banco.
+
+## Contas a pagar e previsões (1.7.0)
+
+O bot também cadastra previsões únicas ou mensais, sem efetuar baixa:
+
+> Cadastre conta de luz de 200 reais vencendo dia 20, todo mês.
+
+> Cadastre telefone de 80 reais vencendo amanhã, uma vez.
+
+> Conta de luz com valor a definir no dia 25, todo mês por seis meses.
+
+> Vou receber 500 reais dia 10 do mês que vem na conta C6 pessoa jurídica.
+
+> Prevejo receber 3.000 reais todo mês no dia 5 na conta C6 PJ.
+
+`/contasapagar` mostra ajuda; `/contapagar texto`, `/pagar texto` e `/boleto texto`
+direcionam explicitamente o cadastro de uma **previsão**, sem pagamento.
+`/contas` continua listando as contas bancárias, e `/recebimentos` inclui entradas
+realizadas e previstas. Uma pendência de outro tipo precisa ser terminada ou
+cancelada antes do novo lançamento.
+
+A recorrência é mensal, com 1 a 120 ocorrências quando houver término. Sem
+quantidade, mantém inicialmente 12 meses e continua gerando previsões. O dia 31
+usa o último dia dos meses curtos e volta ao dia 31 nos meses seguintes. Descrição
+e vencimento de contas precisam estar claros. Valores de contas variáveis podem
+ficar **a definir**; o bot não inventa valores de luz/telefone.
+
+O cadastro segue a preferência individual/global de confirmação. Confirmar um
+cadastro de previsão não confirma um pagamento ou recebimento. Para **dar baixa**,
+abra o lançamento no portal e informe o valor e a data efetivamente realizados.
+Uma entrada futura deve ser baixada na própria previsão com **Marcar recebido**.
+Dizer “recebi” sem uma previsão selecionada cadastra um novo recebimento realizado;
+não registra automaticamente a baixa de uma previsão anterior. Da mesma forma,
+um gasto já registrado separadamente não deve ser novamente baixado como outra
+despesa. Gerencie a previsão original pelo portal para manter um único movimento.

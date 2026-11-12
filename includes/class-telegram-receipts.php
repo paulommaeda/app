@@ -46,18 +46,19 @@ final class PDS_Telegram_Receipts {
             $draft = array( 'telegram_id' => $job['telegram_id'], 'source_ref' => $job['event_key'], 'token' => '', 'data' => array(
                 'description' => 'Recebimento', 'amount' => null,
                 'received_on' => wp_date( 'Y-m-d', (int) $payload['date'], wp_timezone() ),
-                'account_hint' => null, 'account_id' => 0, 'account_uncertain' => false, 'notes' => '',
+                'status' => 'received', 'recurrence' => 'once', 'occurrences' => null, 'billing_day' => null, 'uncertain_planning' => array(), 'account_hint' => null, 'account_id' => 0, 'account_uncertain' => false, 'notes' => '',
             ) );
         }
         $entry = $recognized['receipt'];
-        foreach ( array( 'description', 'amount', 'received_on', 'account_hint', 'notes' ) as $key ) {
-            if ( null !== $entry[ $key ] ) {
+        foreach ( array( 'description', 'amount', 'received_on', 'account_hint', 'notes', 'status', 'recurrence', 'occurrences', 'billing_day' ) as $key ) {
+            if ( null !== ( $entry[ $key ] ?? null ) ) {
+                unset( $draft['data']['uncertain_planning'][ $key ] );
                 $draft['data'][ $key ] = is_string( $entry[ $key ] ) ? sanitize_textarea_field( $entry[ $key ] ) : $entry[ $key ];
                 if ( 'account_hint' === $key ) { $draft['data']['account_id'] = 0; $draft['data']['account_uncertain'] = false; }
             }
         }
         foreach ( $entry['uncertain_fields'] as $key ) {
-            $draft['data'][ $key ] = null;
+            $draft['data'][ $key ] = null; if ( in_array( $key, array( 'recurrence', 'occurrences', 'billing_day' ), true ) ) { $draft['data']['uncertain_planning'][ $key ] = true; }
             if ( 'account_hint' === $key ) { $draft['data']['account_id'] = 0; $draft['data']['account_uncertain'] = true; }
         }
         $draft['token'] = bin2hex( random_bytes( 16 ) );
@@ -75,7 +76,12 @@ final class PDS_Telegram_Receipts {
         $data = $draft['data']; $missing = array();
         if ( ! is_string( $data['description'] ) || mb_strlen( trim( $data['description'] ) ) < 2 || mb_strlen( $data['description'] ) > 180 ) { $missing[] = 'uma descrição curta do recebimento'; }
         if ( is_wp_error( PDS_Expenses::amount( $data['amount'] ) ) ) { $missing[] = 'valor recebido em reais, com até duas casas decimais'; }
-        if ( ! PDS_Expenses::valid_date( $data['received_on'] ) || $data['received_on'] > current_time( 'Y-m-d' ) ) { $missing[] = 'data válida do recebimento realizado, até hoje (previsões podem ser cadastradas como A receber no portal)'; }
+        $data += array( 'status' => 'received', 'recurrence' => 'once', 'occurrences' => null, 'billing_day' => null, 'uncertain_planning' => array() );
+        if ( ! in_array( $data['status'], array( 'received', 'pending' ), true ) ) { $missing[] = 'se o valor já foi recebido ou está somente previsto'; }
+        if ( ! PDS_Expenses::valid_date( $data['received_on'] ) || ( 'received' === $data['status'] && $data['received_on'] > current_time( 'Y-m-d' ) ) ) { $missing[] = 'data válida: até hoje para valor recebido, ou a data prevista quando ainda está A receber'; }
+        $repeat_request = new WP_REST_Request( 'POST' ); $repeat_request->set_body_params( array_intersect_key( $data, array_flip( array( 'recurrence', 'occurrences', 'billing_day' ) ) ) ); $repeat = PDS_Finance_Planning::recurrence( $repeat_request, is_string( $data['received_on'] ) ? $data['received_on'] : '' );
+        if ( is_wp_error( $repeat ) || ! empty( $data['uncertain_planning'] ) ) { $missing[] = 'recorrência: uma vez ou mensal, o dia e a quantidade de meses quando informada'; }
+        if ( 'monthly' === $data['recurrence'] && 'pending' !== $data['status'] ) { $missing[] = 'confirmar que a recorrência é uma previsão A receber; valores já recebidos devem ser lançados separadamente'; }
         if ( ! is_string( $data['notes'] ) || mb_strlen( $data['notes'] ) > 500 ) { $missing[] = 'observação de até 500 caracteres'; }
         $data['account_id'] = ! empty( $data['account_uncertain'] ) ? 0 : PDS_Telegram_Finance::account_id( $data['account_hint'], $data['account_id'] );
         if ( ! $data['account_id'] ) {
@@ -94,8 +100,8 @@ final class PDS_Telegram_Receipts {
             ) ) ) );
         }
         $request = new WP_REST_Request( 'POST' );
-        $request->set_body_params( array_intersect_key( $data, array_fill_keys( array( 'description', 'amount', 'received_on', 'account_id', 'notes' ), true ) ) + array( 'status' => 'received' ) );
-        $saved = PDS_Finance::save_receipt( $request, 'telegram-receipt:' . $draft['source_ref'] );
+        $request->set_body_params( array_intersect_key( $data, array_fill_keys( array( 'description', 'amount', 'received_on', 'account_id', 'notes', 'status', 'recurrence', 'occurrences', 'billing_day' ), true ) ) );
+        $saved = 'monthly' === $data['recurrence'] ? PDS_Finance_Planning::save_receipt_plan( $request, 'telegram-receipt:' . $draft['source_ref'] ) : PDS_Finance::save_receipt( $request, 'telegram-receipt:' . $draft['source_ref'] );
         if ( is_wp_error( $saved ) ) { return PDS_Telegram::reply( $saved->get_error_message() . ' Envie a correção ou use /cancelar.' ); }
         $wpdb->update( $wpdb->prefix . 'pds_tg_updates', array( 'record_id' => $saved['id'], 'record_service' => 'recebimentos' ), array( 'id' => $job['id'] ) );
         $wpdb->delete( $wpdb->prefix . 'pds_tg_receipt_drafts', array( 'user_id' => $uid ) );
@@ -103,7 +109,7 @@ final class PDS_Telegram_Receipts {
     }
 
     private static function summary( $data, $account_name ) {
-        return 'Descrição: ' . $data['description'] . "\nValor: R$ " . number_format( (float) $data['amount'], 2, ',', '.' ) . "\nConta: " . $account_name . "\nData: " . implode( '/', array_reverse( explode( '-', $data['received_on'] ) ) );
+        return 'Descrição: ' . $data['description'] . "\nValor: R$ " . number_format( (float) $data['amount'], 2, ',', '.' ) . "\nConta: " . $account_name . "\nSituação: " . ( ( $data['status'] ?? 'received' ) === 'pending' ? 'A receber (sem baixa automática)' : ( ( $data['status'] ?? 'received' ) === 'canceled' ? 'Cancelado' : 'Recebido' ) ) . ( ( $data['recurrence'] ?? '' ) === 'monthly' || ! empty( $data['recurring_id'] ) ? "\nRecorrência: mensal" . ( ! empty( $data['occurrences'] ) ? ' por ' . $data['occurrences'] . ' meses' : '' ) : '' ) . "\nData: " . implode( '/', array_reverse( explode( '-', $data['received_on'] ) ) );
     }
 
     public static function saved_reply( $id ) {
@@ -112,6 +118,7 @@ final class PDS_Telegram_Receipts {
         if ( is_wp_error( $row ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira Recebimentos no portal.' ); }
         $account = PDS_Finance::find( 'accounts', $row['account_id'] );
         if ( is_wp_error( $account ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira Recebimentos no portal.' ); }
-        return PDS_Telegram::reply( "Recebimento registrado!\n" . self::summary( $row, $account['name'] ) . "\nConfira em Meu Financeiro → Recebimentos. O saldo considera a data inicial da conta." );
+        if ( $row['status'] === 'canceled' ) { return PDS_Telegram::reply( "Previsão de recebimento cancelada.\n" . self::summary( $row, $account['name'] ) . "\nConfira o histórico no portal." ); }
+        return PDS_Telegram::reply( ( $row['status'] === 'pending' ? "Recebimento previsto cadastrado!\n" : "Recebimento registrado!\n" ) . self::summary( $row, $account['name'] ) . ( $row['status'] === 'pending' ? "\nO saldo não foi alterado. Quando receber, confirme o valor e a data em Meu Financeiro → Recebimentos → Marcar recebido." : "\nConfira em Meu Financeiro → Recebimentos. O saldo considera a data inicial da conta." ) );
     }
 }

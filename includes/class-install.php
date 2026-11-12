@@ -115,13 +115,15 @@ final class PDS_Install {
             first_invoice varchar(7) NOT NULL DEFAULT '',
             installment_value decimal(12,2) DEFAULT NULL,
             fuel_record_id bigint(20) unsigned DEFAULT NULL,
+            payable_id bigint(20) unsigned DEFAULT NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
             KEY user_date (user_id,spent_on),
             KEY user_category (user_id,category_id,spent_on),
             UNIQUE KEY external_ref (external_ref),
-            UNIQUE KEY fuel_record_id (fuel_record_id)
+            UNIQUE KEY fuel_record_id (fuel_record_id),
+            UNIQUE KEY payable_id (payable_id)
         ) ENGINE=InnoDB $collate;" );
         PDS_Finance_Schema::create( $collate );
         dbDelta( "CREATE TABLE {$prefix}pds_tg_expense_drafts (
@@ -209,7 +211,17 @@ final class PDS_Install {
             PRIMARY KEY  (user_id),
             KEY expires_at (expires_at)
         ) ENGINE=InnoDB $collate;" );
-        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts', 'pds_expenses', 'pds_expense_categories', 'pds_tg_expense_drafts', 'pds_tg_receipt_drafts', 'pds_fin_accounts', 'pds_fin_receipts', 'pds_fin_cards', 'pds_fin_invoices', 'pds_fin_installments', 'pds_fin_bill_payments', 'pds_fin_adjustments' ) as $table ) {
+        dbDelta( "CREATE TABLE {$prefix}pds_tg_payable_drafts (
+            user_id bigint(20) unsigned NOT NULL,
+            telegram_id varchar(24) NOT NULL,
+            source_ref varchar(64) NOT NULL,
+            token varchar(32) NOT NULL,
+            data longtext NOT NULL,
+            expires_at bigint(20) unsigned NOT NULL,
+            PRIMARY KEY  (user_id),
+            KEY expires_at (expires_at)
+        ) ENGINE=InnoDB $collate;" );
+        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts', 'pds_expenses', 'pds_expense_categories', 'pds_tg_expense_drafts', 'pds_tg_receipt_drafts', 'pds_fin_accounts', 'pds_fin_receipts', 'pds_fin_cards', 'pds_fin_invoices', 'pds_fin_installments', 'pds_fin_bill_payments', 'pds_fin_adjustments', 'pds_fin_recurring', 'pds_fin_payables', 'pds_tg_payable_drafts' ) as $table ) {
             $name = $prefix . $table;
             if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $name ) ) ) !== $name ) {
                 return new WP_Error( 'pds_schema', 'Não foi possível criar as tabelas do portal. Verifique as permissões do banco de dados e reative o plugin.' );
@@ -223,5 +235,6 @@ final class PDS_Install {
         wp_clear_scheduled_hook( 'pds_cleanup_limits' );
         wp_clear_scheduled_hook( 'pds_tg_process_queue' );
         wp_clear_scheduled_hook( 'pds_tg_process_once' );
+        wp_clear_scheduled_hook( 'pds_finance_planning' );
     }
 }

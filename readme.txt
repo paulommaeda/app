@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,7 +28,10 @@ catálogo de serviços, Meu Combustível e Meu Financeiro.
 * Sem JavaScript de CDN ou banco separado; atualizações consultadas no GitHub.
 * Importação do banco antigo por SQL/JSON ou leitura das tabelas existentes.
 * Telegram com vínculo individual, voz/texto, gastos, recebimentos e abastecimentos.
-* Recebimentos identificam conta de destino, atualizam saldo e respeitam confirmação.
+* Recebimentos realizados ou futuros por voz/texto, com conta de destino e confirmação.
+* Contas a pagar únicas ou mensais, com vencimento, previsão e baixa manual.
+* Recorrências geram previsões; datas de vencimento nunca dão baixa automática.
+* Faturas dos cartões aparecem mensalmente nas contas a pagar com os gastos reais.
 * Gastos, contas, recebimentos, cartões, faturas e dashboard privados por usuário.
 * Abastecimentos novos geram gastos automaticamente para quem registrou.
 * Crédito à vista ou em até 120 parcelas, distribuídas por fechamento/vencimento.
@@ -74,7 +77,7 @@ WordPress e não são compartilhados com participantes dos veículos.
 Cadastre suas contas, recebimentos e cartões; acompanhe faturas e parcelas.
 Abastecimentos novos entram automaticamente como gastos. Importe faturas em
 CSV/OFX ou, com autorização, PDF pelo Gemini. Confira antes de confirmar.
-Veja docs/FINANCEIRO.md e docs/GASTOS.md para funcionamento e limites.
+Veja docs/PLANEJAMENTO.md, docs/FINANCEIRO.md e docs/GASTOS.md para funcionamento e limites.
 
 == Shortcodes ==
 
@@ -154,6 +157,15 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.7.0 =
+* Contas a pagar únicas ou mensais, inclusive com valor a definir, e baixa manual com valor/data reais.
+* Recorrências de contas e recebimentos futuros, com quantidade de meses ou sem término definido.
+* Previsões pendentes até confirmação; geração periódica não altera saldos nem efetua pagamentos.
+* Faturas recorrentes integradas às contas a pagar, calculadas pelas compras e parcelas de cada mês.
+* Cadastro de contas e previsões de recebimento pelo mesmo Telegram, com confirmação e complementos.
+* Edição de ocorrência ou série, encerramento de recorrências e reversão de baixas sem duplicar despesas.
+* Fluxo de caixa previsto, valores indefinidos sinalizados, privacidade e atualização nativa preservados.
 
 = 1.6.0 =
 * Recebimentos por texto e áudio no mesmo Telegram, usando as contas WordPress existentes.

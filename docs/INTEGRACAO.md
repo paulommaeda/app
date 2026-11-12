@@ -247,3 +247,34 @@ Pendências em `pds_tg_receipt_drafts` pertencem ao usuário e Telegram vinculad
 expiram em duas horas e participam da limpeza diária, desvinculação e apagamento
 de privacidade. As colunas novas preservam os recebimentos existentes com
 origem manual por padrão. O modelo e as chaves da IA não mudam na atualização.
+
+## Previsões e recorrências (1.7.0)
+
+`pds_fin_recurring` guarda definições mensais do próprio usuário, com tipo
+`payable`/`receipt`, dia âncora, início, término opcional e cursor de geração.
+`pds_fin_payables` guarda ocorrências, com status pending/paid/canceled e vínculo
+único opcional ao gasto da baixa. Recebimentos continuam em `pds_fin_receipts`,
+com `recurring_id` e `occurrence_month` opcionais e status canceled para previsões
+descartadas. A restrição única (recurring_id,occurrence_month) impede duplicação.
+
+Rotas sob `/pds/v1/finance/`: `payables`, `payables/{id}`, `payables/{id}/pay`,
+`payables/{id}/reopen`, `recurring`, `recurring/{id}` e `receipts/plan`. As rotas
+aplicam autenticação, nonce, permissão de `gastos` e propriedade. `payables` lista
+por mês e situação; faturas são derivadas dos registros existentes do cartão.
+
+O evento horário `pds_finance_planning` e as consultas materializam previsões
+sem marcar pagamentos/recebimentos como realizados. A geração é retomável,
+serializada por definição e limitada por lote. O saldo soma apenas recebimentos
+received, despesas realizadas e pagamentos de fatura. O fluxo previsto considera
+contas pending, recebimentos pending e faturas ainda abertas, sem duplicar custos.
+
+`pds_expenses.payable_id` vincula exclusivamente uma baixa. A gravação da conta
+paga e do gasto ocorre na mesma transação, incluindo eventuais parcelas do cartão.
+O parâmetro interno in_transaction de save_entry nunca é recebido do corpo REST.
+Desfazer baixa também é atômico e respeita faturas com pagamentos registrados.
+
+O reconhecimento aceita `intent=payable` com descrição, vencimento, valor
+previsto/indefinido, categoria, conta bancária opcional e recorrência. `receipt`
+aceita status received/pending e os mesmos campos de repetição. Dados internos
+de ID, cursor, referências e flags não são enviados à IA. `pds_tg_payable_drafts`
+e record_service=contas_pagar separam as pendências e as respostas gravadas.

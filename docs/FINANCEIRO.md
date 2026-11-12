@@ -182,5 +182,12 @@ incertos geram perguntas; responda só o complemento. PF/PJ são reconhecidos e
 nomes ambíguos pedem escolha. `/contas` lista as contas ativas; `/recebimentos`
 mostra ajuda. Os dados seguem as mesmas regras de propriedade, datas e valores
 do cadastro manual. A lista indica a origem Telegram, e edições/exclusões pelo
-portal recalculam o saldo normalmente. Previsões continuam em **A receber**
-pelo portal. Veja [TELEGRAM.md](TELEGRAM.md).
+portal recalculam o saldo normalmente. Desde 1.7.0, previsões também podem ser cadastradas pelo Telegram e permanecem
+**A receber** até a baixa manual no portal. Veja [TELEGRAM.md](TELEGRAM.md).
+
+## Planejamento mensal (1.7.0)
+
+**Contas a pagar** reúne contas únicas, recorrências e faturas de cartão.
+**Prever recebimento** cadastra entradas futuras, únicas ou mensais. Previsões
+não alteram saldos; o vencimento não efetua baixa. Confirme valor/data reais com
+**Dar baixa** ou **Marcar recebido**. Veja [PLANEJAMENTO.md](PLANEJAMENTO.md).

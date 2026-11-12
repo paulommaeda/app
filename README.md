@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.6.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.7.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.6.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.7.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -134,3 +134,25 @@ ou conta estiverem incertos, o bot pergunta e aceita só o complemento. PF/PJ
 são reconhecidos; nomes ambíguos nunca escolhem uma conta automaticamente.
 Sem origem mencionada, a descrição é **Recebimento**. Previsões de entrada
 continuam disponíveis no portal como **A receber**.
+
+## Contas mensais e recebimentos futuros (1.7.0)
+
+Em **Meu Financeiro → Contas a pagar**, registre contas únicas ou mensais, com
+valor conhecido ou a definir. Cadastre quantidade de meses ou deixe sem término
+definido. A geração mensal cria apenas previsões; **não há baixa automática**.
+**Dar baixa** registra valor/data reais e a conta/cartão de pagamento. É possível
+desfazer uma baixa, ajustar uma ocorrência ou encerrar a recorrência.
+
+As faturas dos cartões aparecem automaticamente todos os meses, com os valores
+das compras e parcelas. Não são copiadas como outra despesa. Recebimentos futuros
+ficam **A receber** até **Marcar recebido**, inclusive quando sua data passa.
+
+Exemplos no mesmo Telegram:
+
+- “Cadastre conta de telefone de 80 reais vencendo dia 20, todo mês.”
+- “Conta de luz vencendo dia 25, com valor a definir, uma vez.”
+- “Vou receber 500 reais dia 10 do mês que vem na conta C6 PJ.”
+- “Prevejo receber 3.000 reais todo mês no dia 5 na C6 PJ.”
+
+`/contasapagar` mostra ajuda para previsões. Os vínculos, o modelo da IA e as
+preferências de confirmação continuam valendo. Consulte [PLANEJAMENTO.md](docs/PLANEJAMENTO.md).

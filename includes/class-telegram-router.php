@@ -10,17 +10,18 @@ final class PDS_Telegram_Router {
             'fuel' => PDS_Telegram_Fuel::draft( $uid, $job['telegram_id'] ),
             'expense' => PDS_Telegram_Expenses::draft( $uid, $job['telegram_id'] ),
             'receipt' => PDS_Telegram_Receipts::draft( $uid, $job['telegram_id'] ),
+            'payable' => PDS_Telegram_Payables::draft( $uid, $job['telegram_id'] ),
         );
         $pending = array_filter( $drafts );
-        $handlers = array( 'fuel' => 'PDS_Telegram_Fuel', 'expense' => 'PDS_Telegram_Expenses', 'receipt' => 'PDS_Telegram_Receipts' );
-        $contexts = array( 'fuel' => 'combustivel', 'expense' => 'gastos', 'receipt' => 'recebimentos' );
-        $services = array( 'fuel' => 'combustivel', 'expense' => 'gastos', 'receipt' => 'gastos' );
+        $handlers = array( 'fuel' => 'PDS_Telegram_Fuel', 'expense' => 'PDS_Telegram_Expenses', 'receipt' => 'PDS_Telegram_Receipts', 'payable' => 'PDS_Telegram_Payables' );
+        $contexts = array( 'fuel' => 'combustivel', 'expense' => 'gastos', 'receipt' => 'recebimentos', 'payable' => 'contas_pagar' );
+        $services = array( 'fuel' => 'combustivel', 'expense' => 'gastos', 'receipt' => 'gastos', 'payable' => 'gastos' );
         if ( in_array( $text, array( '/cancelar', '/novo' ), true ) ) {
-            foreach ( array( 'pds_tg_drafts', 'pds_tg_expense_drafts', 'pds_tg_receipt_drafts' ) as $table ) { $wpdb->delete( $wpdb->prefix . $table, array( 'user_id' => $uid ) ); }
+            foreach ( array( 'pds_tg_drafts', 'pds_tg_expense_drafts', 'pds_tg_receipt_drafts', 'pds_tg_payable_drafts' ) as $table ) { $wpdb->delete( $wpdb->prefix . $table, array( 'user_id' => $uid ) ); }
             return PDS_Telegram::reply( 'Pendência descartada. Pode enviar um novo abastecimento, gasto ou recebimento.' );
         }
         if ( isset( $payload['callback'] ) ) {
-            $kind = strpos( $payload['callback'], 'pds_rec_' ) === 0 ? 'receipt' : ( strpos( $payload['callback'], 'pds_exp_' ) === 0 ? 'expense' : 'fuel' );
+            $kind = strpos( $payload['callback'], 'pds_pay_' ) === 0 ? 'payable' : ( strpos( $payload['callback'], 'pds_rec_' ) === 0 ? 'receipt' : ( strpos( $payload['callback'], 'pds_exp_' ) === 0 ? 'expense' : 'fuel' ) );
             return $handlers[ $kind ]::handle( $job, $payload, $link );
         }
         if ( in_array( $text, array( '/confirmar', '/salvar' ), true ) ) {
@@ -44,23 +45,25 @@ final class PDS_Telegram_Router {
             if ( ! pds_user_can_access_service( 'gastos' ) ) { return PDS_Telegram::reply( 'Meu Financeiro não está liberado para sua conta.' ); }
             return PDS_Telegram::reply( "Exemplo: recebi 100 reais na conta C6 pessoa jurídica.\nO recebimento entra na conta já cadastrada e aparece em Meu Financeiro → Recebimentos.\n/contas — ver contas ativas\n/confirmar — salvar resumo pendente\n/cancelar — descartar pendência\nEnvie um recebimento realizado por mensagem, por texto ou áudio." );
         }
+        if ( in_array( $text, array( '/contasapagar', '/contapagar', '/pagar', '/boleto' ), true ) ) { return PDS_Telegram::reply( "Exemplo: cadastre conta de luz de 200 reais vencendo dia 20, todo mês.\nTambém pode dizer: vou pagar telefone de 80 reais amanhã, uma vez.\nA previsão fica pendente. A baixa é manual em Meu Financeiro → Contas a pagar.\n/confirmar — confirmar cadastro pendente\n/cancelar — descartar cadastro" ); }
         if ( '/gastos' === $text || '/gasto' === $text ) {
             return PDS_Telegram::reply( "Exemplo: gastei 35 reais no almoço hoje, no Pix.\nO bot registra descrição, valor, data e categoria em Meu Financeiro.\n/categorias — ver categorias\n/confirmar — salvar resumo pendente\n/cancelar — descartar pendência\nEnvie um gasto por mensagem, por texto ou áudio." );
         }
         if ( '/combustivel' === $text ) { return PDS_Telegram::reply( 'Para abastecimentos, fale veículo, combustível, litros, preço, valor pago, odômetro e se completou o tanque. Use /veiculos para escolher o padrão.' ); }
         if ( preg_match( '#^/veiculos?$|^/veiculo\s#', $text ) ) {
-            return $drafts['expense'] || $drafts['receipt'] ? PDS_Telegram::reply( 'Você tem um lançamento financeiro pendente. Termine esse lançamento ou use /cancelar antes de mudar para combustível.' ) : PDS_Telegram_Fuel::handle( $job, $payload, $link );
+            return $drafts['expense'] || $drafts['receipt'] || $drafts['payable'] ? PDS_Telegram::reply( 'Você tem um lançamento financeiro pendente. Termine esse lançamento ou use /cancelar antes de mudar para combustível.' ) : PDS_Telegram_Fuel::handle( $job, $payload, $link );
         }
         $forced = '';
         if ( preg_match( '#^/(?:gasto|gastos|despesa)\s+(.+)$#us', $text, $m ) ) { $text = $m[1]; $forced = 'expense'; }
         elseif ( preg_match( '#^/(?:recebimento|recebimentos|receber|recebi|receita)\s+(.+)$#us', $text, $m ) ) { $text = $m[1]; $forced = 'receipt'; }
+        elseif ( preg_match( '#^/(?:contapagar|contasapagar|pagar|boleto)\s+(.+)$#us', $text, $m ) ) { $text = $m[1]; $forced = 'payable'; }
         elseif ( preg_match( '#^/(?:abastecer|abastecimento)\s+(.+)$#us', $text, $m ) ) { $text = $m[1]; $forced = 'fuel'; }
         elseif ( strpos( $text, '/' ) === 0 ) { return PDS_Telegram::reply( 'Comando não reconhecido. Use /ajuda, /gastos, /recebimentos ou /combustivel.' ); }
         $fuel_access = pds_user_can_access_service( 'combustivel' ); $finance_access = pds_user_can_access_service( 'gastos' );
-        $income_hint = (bool) preg_match( '/\b(?:recebi|recebimento|entrou|depositaram)\b|me pagaram/iu', $text );
+        $income_hint = (bool) preg_match( '/\b(?:recebi|receber|recebimento|entrou|depositaram)\b|me pagaram/iu', $text );
         $fuel_hint = ! $income_hint && (bool) preg_match( '/abastec|od[oô]metro|(?:completei|encheu|encher).*tanque|litros?.*(?:gasolina|etanol|diesel)/iu', $text );
         if ( ( 'fuel' === $forced || ( ! $forced && $fuel_hint ) ) && ! $fuel_access ) { return PDS_Telegram::reply( 'O serviço Meu Combustível não está liberado para sua conta.' ); }
-        if ( ( in_array( $forced, array( 'expense', 'receipt' ), true ) || ( ! $forced && $income_hint ) ) && ! $finance_access ) { return PDS_Telegram::reply( 'O serviço Meu Financeiro não está liberado para sua conta.' ); }
+        if ( ( in_array( $forced, array( 'expense', 'receipt', 'payable' ), true ) || ( ! $forced && $income_hint ) ) && ! $finance_access ) { return PDS_Telegram::reply( 'O serviço Meu Financeiro não está liberado para sua conta.' ); }
         if ( ! $fuel_access && ! $finance_access ) { return PDS_Telegram::reply( 'Não há um serviço liberado para registrar essa mensagem. Consulte sua conta no portal.' ); }
         $config = PDS_Telegram_Client::settings();
         if ( ( $link['consent_provider'] ?? 'openai' ) !== $config['ai_provider'] ) { return PDS_Telegram::reply( 'O portal mudou o provedor de reconhecimento para ' . PDS_Telegram_Client::provider_name() . '. Abra Minha conta → Telegram e confirme o uso das mensagens.' ); }
@@ -73,7 +76,7 @@ final class PDS_Telegram_Router {
         $extra = array(
             'active_service' => $active_kind ? $contexts[ $active_kind ] : '',
             'expense_categories' => $finance_access ? array_column( PDS_Expenses::category_list(), 'name' ) : array(),
-            'available_services' => array_values( array_filter( array( $fuel_access ? 'combustivel' : '', $finance_access ? 'gastos' : '', $finance_access ? 'recebimentos' : '' ) ) ),
+            'available_services' => array_values( array_filter( array( $fuel_access ? 'combustivel' : '', $finance_access ? 'gastos' : '', $finance_access ? 'recebimentos' : '', $finance_access ? 'contas_pagar' : '' ) ) ),
         );
         if ( $finance_access ) {
             $extra['financial_choices'] = array(
@@ -87,7 +90,7 @@ final class PDS_Telegram_Router {
         $fresh = PDS_Telegram::link( $uid ); $latest_config = PDS_Telegram_Client::settings();
         if ( ! $fresh || $fresh['telegram_id'] !== $job['telegram_id'] || ! $latest_config['enabled'] || $fresh['consent_provider'] !== $latest_config['ai_provider'] ) { return PDS_Telegram::reply( 'O vínculo ou a configuração mudou durante o reconhecimento. Confira sua conta no portal antes de reenviar.' ); }
         $kind = $result['intent'];
-        if ( ! isset( $services[ $kind ] ) || ( $forced && $kind !== $forced ) ) { return PDS_Telegram::reply( 'Envie um gasto, recebimento ou abastecimento por mensagem. Exemplo de recebimento: recebi 100 reais na conta C6 pessoa jurídica. Para valores a receber ou outro assunto, use o portal.' ); }
+        if ( ! isset( $services[ $kind ] ) || ( $forced && $kind !== $forced ) ) { return PDS_Telegram::reply( 'Envie um gasto, recebimento ou abastecimento por mensagem. Exemplo de recebimento: recebi 100 reais na conta C6 pessoa jurídica. Exemplo de previsão: vou receber 500 reais dia 20 na conta C6 PJ. Cadastre uma conta de luz informando o vencimento. Para outro assunto, use o portal.' ); }
         if ( ! pds_user_can_access_service( $services[ $kind ] ) ) { return PDS_Telegram::reply( 'O acesso a esse serviço mudou. Confira sua conta no portal.' ); }
         foreach ( $pending as $pending_kind => $draft ) {
             if ( $pending_kind !== $kind ) { return PDS_Telegram::reply( 'Há um lançamento de outro serviço pendente. Complete-o ou use /cancelar antes de começar este novo lançamento.' ); }

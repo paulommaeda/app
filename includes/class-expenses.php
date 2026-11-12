@@ -95,6 +95,7 @@ final class PDS_Expenses {
     private static function cast( $row ) {
         foreach ( array( 'id', 'category_id' ) as $key ) { $row[ $key ] = (int) $row[ $key ]; }
         foreach ( array( 'account_id', 'card_id', 'installments', 'installment_start' ) as $key ) { $row[ $key ] = (int) $row[ $key ]; }
+        $row['payable_id'] = $row['payable_id'] ? (int) $row['payable_id'] : null;
         $row['fuel_record_id'] = $row['fuel_record_id'] ? (int) $row['fuel_record_id'] : null;
         $row['amount'] = (float) $row['amount']; $row['category_active'] = (bool) $row['category_active']; unset( $row['user_id'], $row['external_ref'] ); return $row;
     }
@@ -109,11 +110,12 @@ final class PDS_Expenses {
     public static function save_entry( WP_REST_Request $request, $external_ref = null, $options = array() ) {
         $allowed = self::permission(); if ( is_wp_error( $allowed ) ) { return $allowed; }
         global $wpdb; $uid = get_current_user_id(); $id = absint( $request->get_url_params()['id'] ?? 0 );
-        if ( $external_ref && ( ! is_string( $external_ref ) || ! preg_match( '/^(telegram-expense|statement):[a-f0-9]{64}$/D', $external_ref ) ) ) { return self::error( 'Origem de registro inválida.' ); }
+        if ( $external_ref && ( ! is_string( $external_ref ) || ! preg_match( '/^(telegram-expense|statement|payable):[a-f0-9]{64}$/D', $external_ref ) ) ) { return self::error( 'Origem de registro inválida.' ); }
         if ( $external_ref ) { $existing = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE user_id=%d AND external_ref=%s", $uid, $external_ref ) ); if ( $existing ) { return self::get_entry( $existing ); } }
         if ( $id && is_wp_error( $old = self::get_entry( $id ) ) ) { return $old; }
         $amount = self::amount( $request->get_param( 'amount' ) ); if ( is_wp_error( $amount ) ) { return $amount; }
         if ( $id && $old['fuel_record_id'] && ( abs( (float) $old['amount'] - (float) $amount ) > 0.000001 || $request->get_param( 'spent_on' ) !== $old['spent_on'] ) ) { return self::error( 'Altere o valor e a data desse gasto no registro original em Meu Combustível.', 409 ); }
+        if ( $id && $old['payable_id'] && ( abs( (float) $old['amount'] - (float) $amount ) > 0.000001 || $request->get_param( 'spent_on' ) !== $old['spent_on'] ) ) { return self::error( 'Corrija a baixa dessa despesa em Contas a pagar.', 409 ); }
         $date = $request->get_param( 'spent_on' ); $description = $request->get_param( 'description' ); $payment = $request->get_param( 'payment_method' ) ?? ''; $merchant = $request->get_param( 'merchant' ) ?? ''; $notes = $request->get_param( 'notes' ) ?? '';
         if ( ! self::valid_date( $date ) || $date > current_time( 'Y-m-d' ) ) { return self::error( 'Informe uma data válida, até hoje, para o gasto realizado.' ); }
         if ( ! is_string( $description ) || ! is_string( $merchant ) || ! is_string( $notes ) || ! is_string( $payment ) || ! array_key_exists( $payment, self::PAYMENTS ) ) { return self::error( 'Confira a descrição, a forma de pagamento e as observações.' ); }
@@ -124,23 +126,26 @@ final class PDS_Expenses {
         $category = self::category( $category_id ); if ( is_wp_error( $category ) ) { return $category; }
         if ( ! $category['active'] && ( ! $id || $old['category_id'] !== (int) $category_id ) ) { return self::error( 'Escolha uma categoria ativa.' ); }
         $data = array( 'category_id' => (int) $category_id, 'spent_on' => $date, 'description' => $description, 'amount' => $amount, 'payment_method' => $payment, 'merchant' => $merchant, 'notes' => $notes, 'updated_at' => current_time( 'mysql', true ) );
+        if ( ! $id && isset( $options['payable_id'] ) ) { $data['payable_id'] = (int) $options['payable_id']; }
         $finance = PDS_Finance::prepare( $request, $id ? $old : null, $options ); if ( is_wp_error( $finance ) ) { return $finance; }
         foreach ( $finance as $key => $value ) { if ( substr( $key, 0, 1 ) !== '_' ) { $data[ $key ] = $value; } }
-        $wpdb->query( 'START TRANSACTION' );
+        $owns_transaction = empty( $options['in_transaction'] );
+        if ( $owns_transaction ) { $wpdb->query( 'START TRANSACTION' ); }
         $locked = $wpdb->get_row( $wpdb->prepare( "SELECT id,active FROM {$wpdb->prefix}pds_expense_categories WHERE id=%d AND user_id=%d FOR UPDATE", $category_id, $uid ), ARRAY_A );
-        if ( ! $locked || ( ! $locked['active'] && ( ! $id || $old['category_id'] !== (int) $category_id ) ) ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'A categoria mudou. Atualize a página e escolha novamente.' ); }
-        $source = $external_ref && strpos( $external_ref, 'statement:' ) === 0 ? 'statement' : ( $external_ref ? 'telegram' : 'manual' );
+        if ( ! $locked || ( ! $locked['active'] && ( ! $id || $old['category_id'] !== (int) $category_id ) ) ) { if ( $owns_transaction ) { $wpdb->query( 'ROLLBACK' ); } return self::error( 'A categoria mudou. Atualize a página e escolha novamente.' ); }
+        $source = $external_ref && strpos( $external_ref, 'statement:' ) === 0 ? 'statement' : ( $external_ref && strpos( $external_ref, 'payable:' ) === 0 ? 'payable' : ( $external_ref ? 'telegram' : 'manual' ) );
         $ok = $id ? $wpdb->update( $wpdb->prefix . 'pds_expenses', $data, array( 'id' => $id, 'user_id' => $uid ) ) : $wpdb->insert( $wpdb->prefix . 'pds_expenses', $data + array( 'user_id' => $uid, 'created_at' => current_time( 'mysql', true ), 'external_ref' => $external_ref, 'source' => $source ) );
         $saved = $id ?: (int) $wpdb->insert_id;
-        if ( false === $ok ) { $wpdb->query( 'ROLLBACK' ); if ( $external_ref ) { $duplicate = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE user_id=%d AND external_ref=%s", $uid, $external_ref ) ); if ( $duplicate ) { return self::get_entry( $duplicate ); } } return self::error( 'Não foi possível salvar o gasto.', 500 ); }
-        $scheduled = PDS_Finance::save_schedule( $saved, $uid, $finance, $id ? $old : null, $amount, $date, $options ); if ( is_wp_error( $scheduled ) ) { $wpdb->query( 'ROLLBACK' ); return $scheduled; }
-        $wpdb->query( 'COMMIT' ); $result = self::get_entry( $saved );
-        if ( ! is_wp_error( $result ) ) { do_action( $id ? 'pds_expense_updated' : 'pds_expense_created', $result, $uid ); }
+        if ( false === $ok ) { if ( $owns_transaction ) { $wpdb->query( 'ROLLBACK' ); } if ( $external_ref ) { $duplicate = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE user_id=%d AND external_ref=%s", $uid, $external_ref ) ); if ( $duplicate ) { return self::get_entry( $duplicate ); } } return self::error( 'Não foi possível salvar o gasto.', 500 ); }
+        $scheduled = PDS_Finance::save_schedule( $saved, $uid, $finance, $id ? $old : null, $amount, $date, $options ); if ( is_wp_error( $scheduled ) ) { if ( $owns_transaction ) { $wpdb->query( 'ROLLBACK' ); } return $scheduled; }
+        if ( $owns_transaction ) { $wpdb->query( 'COMMIT' ); } $result = self::get_entry( $saved );
+        if ( $owns_transaction && ! is_wp_error( $result ) ) { do_action( $id ? 'pds_expense_updated' : 'pds_expense_created', $result, $uid ); }
         return $result;
     }
 
     public static function delete_entry( WP_REST_Request $request ) {
         global $wpdb; $row = self::get_entry( absint( $request['id'] ) ); if ( is_wp_error( $row ) ) { return $row; }
+        if ( $row['payable_id'] ) { return self::error( 'Desfaça a baixa em Contas a pagar para remover a despesa correspondente.', 409 ); }
         if ( $row['fuel_record_id'] ) { return self::error( 'Exclua o abastecimento original em Meu Combustível para remover também esse gasto.', 409 ); }
         $wpdb->query( 'START TRANSACTION' ); $removed = PDS_Finance::remove_expense( $row['id'], get_current_user_id() ); if ( is_wp_error( $removed ) ) { $wpdb->query( 'ROLLBACK' ); return $removed; }
         $ok = $wpdb->delete( $wpdb->prefix . 'pds_expenses', array( 'id' => $row['id'], 'user_id' => get_current_user_id() ) );
