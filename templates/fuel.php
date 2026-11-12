@@ -22,6 +22,7 @@
                 <label>Valor total pago (R$)<input type="number" name="paid" min="0.01" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="Valor final, com desconto" required></label>
                 <label class="pds-check pds-full-tank"><input type="checkbox" name="full_tank" value="1" checked><span>Completei o tanque<small>Desmarque se este abastecimento foi parcial.</small></span></label>
                 <label>Observações <span class="pds-muted">(opcional)</span><textarea name="notes" rows="2" maxlength="500" placeholder="Posto, viagem ou outra informação útil"></textarea></label>
+                <div id="pds-fuel-payment-fields"></div><p class="pds-finance-note">Ao salvar, o valor pago também entra como gasto de quem registrou, na categoria Combustível.</p>
                 <div class="pds-form-error pds-alert" role="alert" hidden></div>
                 <button type="submit" class="pds-button pds-button-wide">Salvar abastecimento <?php echo PDS_Core::icon( 'check' ); ?></button>
             </form>

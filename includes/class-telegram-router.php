@@ -36,6 +36,7 @@ final class PDS_Telegram_Router {
         $active = $forced ?: ( $expense ? 'gastos' : ( $fuel ? 'combustivel' : '' ) );
         $previous = $expense ? array( 'expense' => $expense['data'] ) : ( $fuel ? $fuel['data'] : array() );
         $extra = array( 'active_service' => $active, 'expense_categories' => $expense_access ? array_column( PDS_Expenses::category_list(), 'name' ) : array(), 'available_services' => array_values( array_filter( array( $fuel_access ? 'combustivel' : '', $expense_access ? 'gastos' : '' ) ) ) );
+        if ( $expense_access ) { $extra['financial_choices'] = array( 'cards' => array_values( array_map( static fn( $c ) => $c['name'] . ( $c['last_four'] ? ' final ' . $c['last_four'] : '' ), array_filter( PDS_Finance::cards()['cards'], static fn( $c ) => $c['active'] ) ) ), 'accounts' => array_column( array_filter( PDS_Finance::accounts()['accounts'], static fn( $a ) => $a['active'] ), 'name' ) ); }
         $result = PDS_Telegram_Client::recognize( $text, $payload['audio']['file_id'] ?? null, wp_date( 'Y-m-d', (int) $payload['date'], wp_timezone() ), $previous, $extra );
         if ( is_wp_error( $result ) ) { return PDS_Telegram::reply( $result->get_error_message() ); }
         wp_cache_delete( $uid, 'user_meta' ); wp_cache_delete( 'pds_telegram_settings', 'options' );

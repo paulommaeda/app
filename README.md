@@ -1,9 +1,9 @@
 # Portal de Serviços
 
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
-O primeiro serviço controla veículos, abastecimentos, gastos, consumo e descontos.
+Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.4.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.5.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.4.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.5.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -105,3 +105,19 @@ Use HTTPS na publicação. Nenhum backup SQL, credencial de banco ou dado de usu
 deve ser enviado ao repositório.
 
 Licença: GPL-2.0-or-later.
+
+## Meu Financeiro (1.5.0)
+
+O serviço Meus Gastos evoluiu para **Meu Financeiro**, mantendo a rota `gastos`,
+`[portal_gastos]`, categorias, despesas e usuários. Agora inclui contas com saldo
+inicial, recebimentos realizados/a receber, cartões, faturas, parcelamento,
+fluxo de caixa e importação de fatura. Novos abastecimentos geram despesas
+automaticamente para quem os registra, com pagamento particular e sem duplicação.
+
+Cadastre o fechamento e vencimento dos cartões. Compras de crédito à vista ou
+parceladas são distribuídas pelas faturas; pagar uma fatura baixa o saldo da
+conta sem gerar uma segunda despesa. CSV/OFX são lidos localmente. PDFs usam o
+Gemini configurado, com autorização na tela e revisão dos dados extraídos.
+
+Veja [FINANCEIRO.md](docs/FINANCEIRO.md) para implantação, regras de fechamento,
+formato de importação, parcelas projetadas e limites.

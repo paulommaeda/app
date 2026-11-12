@@ -30,7 +30,8 @@ final class PDS_Telegram_Expenses {
         if ( ! is_array( $recognized ) || 'expense' !== ( $recognized['intent'] ?? '' ) || ! is_array( $recognized['expense'] ?? null ) ) { return PDS_Telegram::reply( 'Envie um gasto por mensagem. Exemplo: gastei 35 reais no almoço hoje, no Pix.' ); }
         $entry = $recognized['expense'];
         if ( ! $draft ) { $draft = array( 'telegram_id' => $job['telegram_id'], 'source_ref' => $job['event_key'], 'token' => '', 'data' => array( 'description' => null, 'spent_on' => wp_date( 'Y-m-d', (int) $payload['date'], wp_timezone() ), 'amount' => null, 'category_hint' => null, 'category_id' => 0, 'category_uncertain' => false, 'payment_method' => '', 'merchant' => '', 'notes' => '' ) ); }
-        foreach ( array( 'description', 'spent_on', 'amount', 'category_hint', 'payment_method', 'merchant', 'notes' ) as $key ) { if ( null !== $entry[ $key ] ) { $draft['data'][ $key ] = is_string( $entry[ $key ] ) ? sanitize_textarea_field( $entry[ $key ] ) : $entry[ $key ]; } }
+        foreach ( array( 'description', 'spent_on', 'amount', 'category_hint', 'merchant', 'notes' ) as $key ) { if ( null !== $entry[ $key ] ) { $draft['data'][ $key ] = is_string( $entry[ $key ] ) ? sanitize_textarea_field( $entry[ $key ] ) : $entry[ $key ]; } }
+        $draft['data'] = PDS_Telegram_Finance::merge( $draft['data'], $entry );
         if ( null !== $entry['category_hint'] ) { $draft['data']['category_uncertain'] = false; }
         foreach ( $entry['uncertain_fields'] as $key ) { $draft['data'][ $key ] = null; if ( 'category_hint' === $key ) { $draft['data']['category_id'] = 0; $draft['data']['category_uncertain'] = true; } }
         $draft['data']['category_id'] = ! empty( $draft['data']['category_uncertain'] ) ? 0 : self::category_id( $draft['data']['category_hint'], $draft['data']['category_id'] ); $draft['token'] = bin2hex( random_bytes( 16 ) );
@@ -45,6 +46,7 @@ final class PDS_Telegram_Expenses {
         $category = $data['category_id'] ? PDS_Expenses::category( $data['category_id'] ) : null;
         if ( ! $category || is_wp_error( $category ) || ! $category['active'] ) { $missing[] = 'uma categoria ativa da sua conta (use /categorias ou cadastre a categoria no portal)'; }
         if ( mb_strlen( (string) $data['merchant'] ) > 120 || mb_strlen( (string) $data['notes'] ) > 500 ) { $missing[] = 'estabelecimento/observação mais curtos'; }
+        list( $data, $financial_missing ) = PDS_Telegram_Finance::resolve( $data ); $missing = array_merge( $missing, $financial_missing ); $draft['data'] = $data;
         if ( ! self::write( $draft ) ) { return PDS_Telegram::reply( 'Não consegui guardar a pendência do gasto. Tente novamente.' ); }
         if ( $missing ) { return PDS_Telegram::reply( "Para registrar esse gasto, ainda preciso de:\n• " . implode( "\n• ", $missing ) . "\nPode responder só o complemento, por texto ou áudio. Use /cancelar para descartar." ); }
         $config = PDS_Telegram_Client::settings(); $link = PDS_Telegram::link( get_current_user_id() );
@@ -52,7 +54,7 @@ final class PDS_Telegram_Expenses {
         wp_cache_delete( get_current_user_id(), 'user_meta' ); wp_cache_delete( 'pds_telegram_settings', 'options' );
         $link = PDS_Telegram::link( get_current_user_id() ); $config = PDS_Telegram_Client::settings();
         if ( ! $link || $link['telegram_id'] !== $job['telegram_id'] || ! $config['enabled'] || $link['consent_provider'] !== $config['ai_provider'] || ! pds_user_can_access_service( 'gastos' ) ) { return PDS_Telegram::reply( 'O vínculo ou o acesso a Meus Gastos mudou. Confira sua conta no portal antes de reenviar.' ); }
-        $request = new WP_REST_Request( 'POST' ); $request->set_body_params( array_intersect_key( $data, array_fill_keys( array( 'description', 'amount', 'spent_on', 'category_id', 'payment_method', 'merchant', 'notes' ), true ) ) );
+        $request = new WP_REST_Request( 'POST' ); $request->set_body_params( array_intersect_key( $data, array_fill_keys( array( 'description', 'amount', 'spent_on', 'category_id', 'payment_method', 'merchant', 'notes', 'card_id', 'account_id', 'installments' ), true ) ) );
         $saved = PDS_Expenses::save_entry( $request, 'telegram-expense:' . $draft['source_ref'] );
         if ( is_wp_error( $saved ) ) { return PDS_Telegram::reply( $saved->get_error_message() . ' Envie a correção ou use /cancelar.' ); }
         $wpdb->update( $wpdb->prefix . 'pds_tg_updates', array( 'record_id' => $saved['id'], 'record_service' => 'gastos' ), array( 'id' => $job['id'] ) );
@@ -61,7 +63,7 @@ final class PDS_Telegram_Expenses {
     }
 
     private static function summary( $data, $category ) {
-        return 'Descrição: ' . $data['description'] . "\nValor: R$ " . number_format( (float) $data['amount'], 2, ',', '.' ) . "\nCategoria: " . $category . "\nData: " . implode( '/', array_reverse( explode( '-', $data['spent_on'] ) ) ) . "\nPagamento: " . ( PDS_Expenses::PAYMENTS[ $data['payment_method'] ?? '' ] ?? 'Não informado' ) . ( ! empty( $data['merchant'] ) ? "\nEstabelecimento: " . $data['merchant'] : '' );
+        return 'Descrição: ' . $data['description'] . "\nValor: R$ " . number_format( (float) $data['amount'], 2, ',', '.' ) . "\nCategoria: " . $category . "\nData: " . implode( '/', array_reverse( explode( '-', $data['spent_on'] ) ) ) . "\nPagamento: " . ( PDS_Expenses::PAYMENTS[ $data['payment_method'] ?? '' ] ?? 'Não informado' ) . PDS_Telegram_Finance::summary( $data ) . ( ! empty( $data['merchant'] ) ? "\nEstabelecimento: " . $data['merchant'] : '' );
     }
     public static function saved_reply( $id ) {
         if ( ! pds_user_can_access_service( 'gastos' ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira seu acesso ao serviço no portal.' ); }

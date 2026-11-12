@@ -97,7 +97,7 @@
     recordForm.elements.filled_on.max = PDS.today;
     $('#pds-record-title').textContent = 'Registrar abastecimento'; $('#pds-cancel-edit').hidden = true;
     $('button[type="submit"]', recordForm).innerHTML = 'Salvar abastecimento ' + icon('check');
-    showError($('.pds-form-error', recordForm), ''); preview();
+    showError($('.pds-form-error', recordForm), ''); preview(); document.dispatchEvent(new CustomEvent('pds:fuel-edit',{detail:null}));
   }
   function setTab(tab) {
     if (!['dashboard','new','history','reports'].includes(tab)) return;
@@ -258,7 +258,7 @@
       const r = state.records.get(Number(edit.dataset.editRecord)); if (!r) return;
       state.editingRecord = r.id;
       ['filled_on','odometer','fuel_type','price','liters','paid','notes'].forEach(k => { recordForm.elements[k].value = r[k]; });
-      recordForm.elements.full_tank.checked = r.full_tank;
+      recordForm.elements.full_tank.checked = r.full_tank; document.dispatchEvent(new CustomEvent('pds:fuel-edit',{detail:r}));
       $('#pds-record-title').textContent = 'Editar abastecimento'; $('#pds-cancel-edit').hidden = false;
       $('button[type="submit"]',recordForm).textContent = 'Salvar alterações'; showError($('.pds-form-error',recordForm),''); preview(); setTab('new');
       $('#pds-record-title').scrollIntoView({block:'center'});

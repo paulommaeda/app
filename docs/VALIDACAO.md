@@ -110,3 +110,23 @@ instalação do ZIP usam os componentes reais do ambiente de validação.
 A interpretação linguística das despesas e a disponibilidade/cota do provedor
 precisam ser verificadas com a chave do site e áudios reais. Os testes locais
 usam respostas controladas de IA, inclusive para o modelo Flash-Lite.
+
+## Controle financeiro — 1.5.0
+
+Validação em WordPress 7.1.4, PHP 8.4 e MariaDB 11.8. Foram exercitados:
+
+* 89 verificações de integração financeira: contas, saldos, receitas realizadas/pendentes, cartões, divisão exata de centavos, faturas, pagamentos parciais e ajustes.
+* Limites de fechamento, compra no próprio dia, virada de mês/ano e fevereiro de ano comum/bissexto; preservação de datas existentes e fechamento corrigido de um ciclo.
+* Totais por compra separados do fluxo de caixa; pagar fatura não duplica despesa.
+* Espelho de abastecimento criado, alterado e excluído atomicamente; rejeição reverte a transação. Compartilhamento de veículo mantém dados bancários/cartões privados.
+* CSV/OFX reais, sinais de crédito/estorno, parcela 3/10, projeção das restantes, reconciliação de parcela futura com valor corrigido, repetição idempotente e duas compras idênticas preservadas.
+* 21 verificações de Telegram/PDF: cartão ausente, múltiplos cartões, modo à vista/parcelado, correção de pendência, conta de saída, crédito em abastecimento e complemento financeiro de abastecimento.
+* 31 verificações pelo navegador: formulários completos, fatura paga parcialmente, mudança de parcelado para à vista, recebimentos, abastecimento integrado, upload multipart CSV/OFX/PDF, revisão editável, descarte e isolamento.
+* Telas conferidas em 320, 390, 768 e 1440 pixels; sem erros JavaScript não capturados.
+* Exportação/apagamento WordPress inclui o razão financeiro; apagar proprietário do veículo preserva despesa particular de outro participante, separada do registro excluído.
+* Atualizador nativo verifica o pacote, instala na pasta canônica e compara todos os registros financeiros antes/depois, além de usuários, histórico e configurações anteriores.
+
+As respostas de Telegram e Gemini são controladas nos testes. O upload PDF é
+exercitado pelo navegador, mas o reconhecimento de documentos bancários reais e
+o áudio real dependem da chave/modelo/cota da hospedagem. Não houve envio de
+faturas ou mensagens reais aos provedores durante os testes locais.

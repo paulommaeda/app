@@ -59,7 +59,7 @@ final class PDS_Core {
         wp_localize_script( 'pds-portal', 'PDS', array(
             'api' => esc_url_raw( rest_url( 'pds/v1/' ) ),
             'nonce' => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
-            'csrf' => PDS_Auth::guest_token(), 'portalUrl' => pds_portal_url(),
+            'csrf' => PDS_Auth::guest_token(), 'portalUrl' => pds_portal_url(), 'userId' => get_current_user_id(),
             'today' => current_time( 'Y-m-d' ), 'registration' => ! empty( $settings['registration'] ),
             'privacyUrl' => get_privacy_policy_url(),
             'reset' => array(

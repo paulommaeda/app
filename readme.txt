@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -11,7 +11,7 @@ Portal de serviços com usuários WordPress, combustível e gastos pessoais.
 == Description ==
 
 Uma única instalação reúne cadastro, login, recuperação de senha, conta pessoal,
-catálogo de serviços, Meu Combustível e Meus Gastos.
+catálogo de serviços, Meu Combustível e Meu Financeiro.
 
 * Cadastro com papel restrito de cliente, usando wp_users e autenticação nativa.
 * Contas WordPress existentes entram com seu e-mail e sua senha atual.
@@ -22,13 +22,17 @@ catálogo de serviços, Meu Combustível e Meus Gastos.
 * Consumo ponderado entre tanques completos, incluindo abastecimentos parciais.
 * Cadastro público configurável e bloqueio de serviços por usuário.
 * Layout próprio responsivo; possibilidade de exibir dentro do tema.
-* Registro público de módulos e eventos de integração para o futuro financeiro.
+* Registro público de módulos e eventos de integração entre serviços.
 * API com autenticação, nonces e verificação de acesso a cada recurso.
 * Exportação/apagamento pelas ferramentas de privacidade do WordPress.
 * Sem JavaScript de CDN ou banco separado; atualizações consultadas no GitHub.
 * Importação do banco antigo por SQL/JSON ou leitura das tabelas existentes.
 * Telegram com vínculo individual, voz/texto, registro automático e confirmação opcional.
-* Gastos pessoais privados, categorias, datas, pagamentos e dashboard com filtros.
+* Gastos, contas, recebimentos, cartões, faturas e dashboard privados por usuário.
+* Abastecimentos novos geram gastos automaticamente para quem registrou.
+* Crédito à vista ou em até 120 parcelas, distribuídas por fechamento/vencimento.
+* Importação de fatura CSV/OFX e PDF pelo Gemini, com conferência e parcelas futuras.
+* Pagamentos parciais de fatura reduzem o saldo da conta sem duplicar o gasto.
 
 == Installation ==
 
@@ -56,21 +60,24 @@ Use Testar reconhecimento para conferir a chave e o modelo. Ao trocar o provedor
 os usuários confirmam o novo uso em Minha conta, mantendo seu vínculo e veículo.
 Veja docs/TELEGRAM.md. A integração fica desativada até essa configuração.
 
-== Meus Gastos ==
+== Meu Financeiro ==
 
-Abra Meus Gastos no catálogo do portal. Registre descrição, valor, data e categoria
+Abra Meu Financeiro no catálogo do portal. Registre descrição, valor, data e categoria
 pelo front-end ou pelo mesmo bot: gastei 35 reais no almoço hoje, no Pix.
 Categorias podem ser criadas, renomeadas, coloridas, arquivadas e reativadas.
 O dashboard mostra totais, evolução, pagamentos e distribuição por categoria com
 os mesmos filtros do histórico e da exportação CSV. Os dados pertencem à conta
 WordPress e não são compartilhados com participantes dos veículos.
-Veja docs/GASTOS.md para o funcionamento e limites.
+Cadastre suas contas, recebimentos e cartões; acompanhe faturas e parcelas.
+Abastecimentos novos entram automaticamente como gastos. Importe faturas em
+CSV/OFX ou, com autorização, PDF pelo Gemini. Confira antes de confirmar.
+Veja docs/FINANCEIRO.md e docs/GASTOS.md para funcionamento e limites.
 
 == Shortcodes ==
 
 [portal_servicos] - catálogo de serviços, login e conta pessoal.
 [portal_combustivel] - abre diretamente o serviço Meu Combustível.
-[portal_gastos] - abre diretamente o serviço Meus Gastos.
+[portal_gastos] - abre diretamente o serviço Meu Financeiro (rota gastos preservada).
 
 Insira em páginas publicadas. Mantenha apenas um desses shortcodes em cada página.
 Se usar uma página existente como principal, selecione-a nas configurações e
@@ -83,10 +90,10 @@ Não. Os usuários são contas nativas do WordPress. O próximo plugin usa o mes
 ID, sessão, e-mail e senha e se registra no catálogo pelo núcleo deste plugin.
 Consulte docs/INTEGRACAO.md.
 
-= Este pacote já contém um sistema financeiro ou cobrança de assinaturas? =
-Não. Entrega o portal e o serviço de combustível. O financeiro será outro
-plugin. Cobrança, planos pagos e assinatura recorrente não estão implementados.
-Há pontos de integração para regras de acesso e despesas de abastecimento.
+= Este pacote já contém controle financeiro? =
+Sim. Inclui gastos, contas, recebimentos, cartões, parcelas e faturas, integrado
+aos abastecimentos e ao mesmo Telegram. Não realiza pagamentos bancários.
+Cobrança de assinaturas do portal e planos pagos não estão implementados.
 
 = O compartilhamento libera outros serviços? =
 Não. Libera somente um veículo e seus abastecimentos. O proprietário gerencia
@@ -144,6 +151,16 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.5.0 =
+* Meu Financeiro amplia Meus Gastos, preservando contas WordPress e dados existentes.
+* Contas com saldo inicial, recebimentos realizados/a receber e fluxo de caixa.
+* Cartões com limite, fechamento, vencimento e compras à vista ou parceladas.
+* Faturas mensais com parcelas exatas em centavos e pagamentos parciais por conta.
+* Abastecimentos integram gastos e faturas, com edição/exclusão sincronizada.
+* Importação CSV/OFX local e PDF pelo Gemini, com prévia editável e projeção de parcelas.
+* Reconciliação de parcelas futuras, deduplicação e esclarecimento de cartão/parcelas pelo Telegram.
+* Privacidade, exportação/apagamento, atualização nativa e isolamento por usuário.
 
 = 1.4.0 =
 * Serviço Meus Gastos com despesas e categorias privadas por conta WordPress.

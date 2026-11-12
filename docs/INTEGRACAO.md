@@ -200,3 +200,30 @@ Eventos `pds_expense_created`, `pds_expense_updated` e `pds_expense_deleted` rec
 registro e ID nativo do usuário. Um plugin financeiro futuro pode consumir
 esses eventos respeitando a conta e evitando duplicar a origem interna.
 Veja [GASTOS.md](GASTOS.md) para API, dados e alcance.
+
+## Meu Financeiro (1.5.0)
+
+`gastos` continua sendo o identificador de acesso. As novas tabelas InnoDB
+`pds_fin_accounts`, `pds_fin_receipts`, `pds_fin_cards`, `pds_fin_invoices`,
+`pds_fin_installments`, `pds_fin_bill_payments` e `pds_fin_adjustments` usam
+`user_id` nativo e verificações de propriedade, sem exceção de leitura pessoal
+para administradores. Rotas autenticadas sob `/pds/v1/finance/`: `accounts`,
+`receipts`, `cards`, `plan`, `overview`, `invoices`, `payments`, `adjustments`,
+`import/preview`, `import/apply`, `import/cancel`.
+
+`pds_expenses.fuel_record_id` é único e opcional. O combustível nativo grava seu
+espelho financeiro dentro da mesma transação. Um plugin adicional **não deve**
+criar outra despesa ao consumir `pds_fuel_record_created`: a integração já existe.
+O evento continua público para outros consumidores. O importador legado usa esse
+evento para espelhar registros novos importados, de forma idempotente.
+
+A compra (`pds_expenses`) mantém o total. A responsabilidade mensal fica nas
+parcelas. Pagamento de fatura é saída da conta, não outra compra. Importação que
+começa em i/N projeta só as parcelas de i até N; o total dessa compra importada
+representa os compromissos restantes conhecidos. Datas de faturas são snapshots;
+alterar a regra de cartão não reescreve faturas existentes.
+
+Campos de crédito no objeto IA `expense`: `card_hint`, `account_hint`,
+`installment_mode` e `installments`. O servidor resolve nomes contra recursos
+do próprio usuário; nunca aceita IDs fornecidos pela IA. Em `intent=fuel`, o
+objeto opcional informa apenas o pagamento do mesmo abastecimento.

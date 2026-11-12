@@ -93,6 +93,7 @@ final class PDS_Fuel {
         $vehicle = self::vehicle( $vehicle['id'], true );
         if ( is_wp_error( $vehicle ) ) { $wpdb->query( 'ROLLBACK' ); return $vehicle; }
         $records = self::raw_records( $vehicle['id'] );
+        foreach ( $records as $record ) { $finance = PDS_Finance_Fuel::remove( $record['id'] ); if ( is_wp_error( $finance ) ) { $wpdb->query( 'ROLLBACK' ); return $finance; } }
         $r1 = $wpdb->delete( $wpdb->prefix . 'pds_fuel_records', array( 'vehicle_id' => $vehicle['id'] ) );
         $r2 = $wpdb->delete( $wpdb->prefix . 'pds_vehicle_shares', array( 'vehicle_id' => $vehicle['id'] ) );
         $r3 = $wpdb->delete( $wpdb->prefix . 'pds_vehicles', array( 'id' => $vehicle['id'], 'owner_user_id' => get_current_user_id() ) );
@@ -213,7 +214,7 @@ final class PDS_Fuel {
         $page = max( 1, absint( $request['page'] ?? 1 ) ); $per_page = min( 100, max( 1, absint( $request['per_page'] ?? 12 ) ) );
         $total = count( $rows );
         $rows = array_slice( array_reverse( $rows ), ( $page - 1 ) * $per_page, $per_page );
-        foreach ( $rows as &$row ) { $row['can_modify'] = $vehicle['is_owner'] || $row['created_by'] === get_current_user_id(); }
+        foreach ( $rows as &$row ) { $row['can_modify'] = $vehicle['is_owner'] || $row['created_by'] === get_current_user_id(); $private = PDS_Finance_Fuel::details( $row['id'] ); if ( $private ) { $row['finance'] = $private; } }
         return array( 'records' => $rows, 'total' => $total, 'pages' => (int) ceil( $total / $per_page ), 'page' => $page );
     }
 
@@ -281,6 +282,8 @@ final class PDS_Fuel {
             $result = $wpdb->insert( $wpdb->prefix . 'pds_fuel_records', $data ); $record_id = (int) $wpdb->insert_id;
         }
         if ( false === $result ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível salvar. Confira se a quilometragem já foi registrada e tente novamente.', 409 ); }
+        $financial_record = array_merge( $old ?: array(), $data, array( 'id' => $record_id, 'created_by' => $old['created_by'] ?? get_current_user_id() ) );
+        $financial = PDS_Finance_Fuel::sync( $financial_record, $vehicle, $request ); if ( is_wp_error( $financial ) ) { $wpdb->query( 'ROLLBACK' ); return $financial; }
         $wpdb->query( 'COMMIT' );
         $record = self::existing_record( $record_id );
         self::event( $old ? 'updated' : 'created', $record, $vehicle, $old );
@@ -298,6 +301,7 @@ final class PDS_Fuel {
         $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_vehicles WHERE id = %d FOR UPDATE", $vehicle['id'] ) );
         $vehicle = self::vehicle( $record['vehicle_id'] );
         if ( is_wp_error( $vehicle ) ) { $wpdb->query( 'ROLLBACK' ); return $vehicle; }
+        $financial = PDS_Finance_Fuel::remove( $record['id'] ); if ( is_wp_error( $financial ) ) { $wpdb->query( 'ROLLBACK' ); return $financial; }
         $result = $wpdb->delete( $wpdb->prefix . 'pds_fuel_records', array( 'id' => $record['id'] ) );
         if ( ! $result ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível excluir o abastecimento.', 500 ); }
         $wpdb->query( 'COMMIT' );

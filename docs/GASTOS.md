@@ -1,4 +1,4 @@
-# Meus Gastos
+# Meu Financeiro — gastos e categorias
 
 Serviço de gastos pessoais disponível no Portal de Serviços a partir da versão
 1.4.0. Usa o mesmo cadastro, sessão WordPress e vínculo Telegram do portal.
@@ -6,9 +6,9 @@ O serviço não exige veículo nem uma nova conta.
 
 ## Atualizar e começar
 
-1. Atualize o plugin para 1.4.0 pelo painel do WordPress ou envie o ZIP e escolha
+1. Atualize o plugin para 1.5.0 pelo painel do WordPress ou envie o ZIP e escolha
    substituir a versão instalada. O esquema é atualizado automaticamente.
-2. Entre no portal e abra **Meus Gastos** no menu ou no catálogo de serviços.
+2. Entre no portal e abra **Meu Financeiro** no menu ou no catálogo de serviços.
 3. Use **Registrar gasto** ou envie um áudio/texto ao bot já vinculado.
 
 As contas, veículos, abastecimentos, configuração do modelo da IA e vínculos do
@@ -68,7 +68,7 @@ Exemplos de áudio ou texto:
 
 O bot identifica o serviço e usa uma única interpretação por mensagem. Um
 abastecimento detalhado continua no Meu Combustível; um gasto pessoal vai para
-Meus Gastos. A mesma mensagem não é gravada automaticamente nos dois serviços.
+Meu Financeiro. Um abastecimento também gera seu gasto integrado, usando uma única interpretação e um único registro financeiro vinculado.
 O campo de veículo padrão vale apenas para combustível.
 
 * A data não mencionada usa a data da mensagem, no fuso do WordPress.
@@ -123,10 +123,10 @@ vínculo e mudanças de acesso são verificadas antes da gravação. Entregas
 repetidas e reenvios da notificação não criam novos gastos. A fila guarda o
 serviço de cada ID para evitar confundir um gasto com um abastecimento.
 
-Este módulo registra gastos realizados. Não mantém saldo bancário, receitas,
-faturas, parcelas futuras, orçamento ou conciliação. Compras no crédito são
-registradas pelo valor informado e pela data do gasto, sem gerar parcelas
-automaticamente.
+Desde 1.5.0, inclui contas, recebimentos, faturas, parcelas futuras, fluxo de caixa
+e conferência de importações. O dashboard de gastos continua pela data da compra
+e considera o valor total uma vez. Faturas mostram as parcelas; Fluxo de caixa
+mostra saídas diretas e pagamentos de fatura. Consulte [FINANCEIRO.md](FINANCEIRO.md).
 
 ## Extensão técnica
 

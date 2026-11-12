@@ -97,6 +97,7 @@ final class PDS_Telegram_Fuel {
             $draft['data'][ $key ] = null;
             if ( 'vehicle_hint' === $key ) { $draft['data']['vehicle_uncertain'] = true; $draft['data']['vehicle_id'] = 0; }
         }
+        $draft['data']['expense'] = PDS_Telegram_Finance::merge( $draft['data']['expense'] ?? array(), $extracted['expense'] ?? array() );
         $draft['data']['vehicle_id'] = self::choose_vehicle( $draft['data'], $link, $vehicles );
         $draft['token'] = bin2hex( random_bytes( 16 ) );
         if ( ! self::write_draft( $draft ) ) { return PDS_Telegram::reply( 'Não consegui preparar o abastecimento. Tente novamente.' ); }
@@ -123,7 +124,7 @@ final class PDS_Telegram_Fuel {
 
     private static function summary( $record, $name ) {
         $fuel = array( 'G' => 'Gasolina', 'A' => 'Etanol', 'D' => 'Diesel' )[ $record['fuel_type'] ];
-        return $name . "\nData: " . implode( '/', array_reverse( explode( '-', $record['filled_on'] ) ) ) . "\nCombustível: " . $fuel . "\nLitros: " . number_format( $record['liters'], 3, ',', '.' ) . "\nPreço de tabela/L: R$ " . number_format( $record['price'], 3, ',', '.' ) . "\nValor pago: R$ " . number_format( $record['paid'], 2, ',', '.' ) . "\nOdômetro: " . number_format( $record['odometer'], 2, ',', '.' ) . " km\nTanque: " . ( $record['full_tank'] ? 'completo' : 'parcial' );
+        return $name . "\nData: " . implode( '/', array_reverse( explode( '-', $record['filled_on'] ) ) ) . "\nCombustível: " . $fuel . "\nLitros: " . number_format( $record['liters'], 3, ',', '.' ) . "\nPreço de tabela/L: R$ " . number_format( $record['price'], 3, ',', '.' ) . "\nValor pago: R$ " . number_format( $record['paid'], 2, ',', '.' ) . "\nOdômetro: " . number_format( $record['odometer'], 2, ',', '.' ) . " km\nTanque: " . ( $record['full_tank'] ? 'completo' : 'parcial' ) . PDS_Telegram_Finance::summary( $record['expense'] ?? array() );
     }
 
     private static function finish( $job, $link, $draft, $confirmed ) {
@@ -136,7 +137,7 @@ final class PDS_Telegram_Fuel {
             return PDS_Telegram::reply( 'O vínculo ou o acesso ao serviço mudou. Confira sua conta no portal antes de reenviar.' );
         }
         $data = $draft['data']; $data['vehicle_id'] = self::choose_vehicle( $data, $link, self::vehicles() );
-        $missing = self::missing( $data ); $draft['data'] = $data;
+        $missing = self::missing( $data ); list( $financial, $financial_missing ) = PDS_Telegram_Finance::resolve( $data['expense'] ?? array() ); $data['expense'] = $financial; $missing = array_merge( $missing, $financial_missing ); $draft['data'] = $data;
         if ( ! self::write_draft( $draft ) ) { return PDS_Telegram::reply( 'Não foi possível guardar a pendência. Tente novamente.' ); }
         if ( $missing ) { return PDS_Telegram::reply( "Ainda preciso de:\n• " . implode( "\n• ", $missing ) . "\nEnvie só os dados que faltam, por texto ou áudio. Use /cancelar para descartar." ); }
         $vehicle = PDS_Fuel::vehicle( $data['vehicle_id'] );
@@ -150,6 +151,7 @@ final class PDS_Telegram_Fuel {
         $fresh_link = PDS_Telegram::link( $uid );
         if ( ! $fresh_link || $fresh_link['telegram_id'] !== $job['telegram_id'] || empty( PDS_Telegram_Client::settings()['enabled'] ) || ! pds_user_can_access_service( 'combustivel', $uid ) ) { return PDS_Telegram::reply( 'O vínculo ou o acesso ao serviço mudou. Confira sua conta no portal antes de reenviar.' ); }
         $request = new WP_REST_Request( 'POST' ); $request->set_url_params( array( 'id' => $data['vehicle_id'] ) ); $request->set_body_params( array_intersect_key( $data, array_fill_keys( array( 'filled_on', 'odometer', 'fuel_type', 'price', 'liters', 'paid', 'full_tank', 'notes' ), true ) ) );
+        if ( pds_user_can_access_service( 'gastos' ) ) { foreach ( PDS_Telegram_Finance::fields( $data['expense'] ?? array() ) as $key => $value ) { $request->set_param( $key, $value ); } }
         $result = PDS_Fuel::save_record( $request, 'telegram:' . $draft['source_ref'] );
         if ( is_wp_error( $result ) ) { return PDS_Telegram::reply( $result->get_error_message() . ' Envie a correção por aqui ou use /cancelar.' ); }
         $wpdb->update( $wpdb->prefix . 'pds_tg_updates', array( 'record_id' => $result['id'], 'record_service' => 'combustivel' ), array( 'id' => $job['id'] ) );
@@ -163,6 +165,7 @@ final class PDS_Telegram_Fuel {
         if ( ! $record || ! pds_user_can_access_service( 'combustivel' ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira o histórico no portal.' ); }
         $vehicle = PDS_Fuel::vehicle( $record['vehicle_id'] );
         if ( is_wp_error( $vehicle ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira seu acesso ao veículo no portal.' ); }
-        return PDS_Telegram::reply( "Abastecimento salvo!\n" . self::summary( PDS_Fuel::cast_record( $record ), $vehicle['name'] ) . "\nVocê pode conferir e corrigir pelo histórico do app." );
+        $record['expense'] = PDS_Finance_Fuel::details( $record_id ) ?? array();
+        return PDS_Telegram::reply( "Abastecimento salvo!\n" . self::summary( PDS_Fuel::cast_record( $record ), $vehicle['name'] ) . "\nO valor também foi registrado em Meu Financeiro. Confira e corrija pelo histórico do app." );
     }
 }
