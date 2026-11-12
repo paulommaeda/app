@@ -51,7 +51,7 @@ for line in readme.split('== Changelog ==', 1)[-1].strip().splitlines():
 if in_list:
     changelog.append('</ul>')
 manifest = {
-    'name': 'Portal de Serviços — Meu Combustível',
+    'name': 'Portal de Serviços',
     'version': version,
     'download_url': f'https://raw.githubusercontent.com/paulommaeda/app/main/releases/{archive.name}',
     'sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),

@@ -1,12 +1,13 @@
-# Validação da versão 1.3.0
+# Validação da versão 1.4.0
 
 Validação local em 12 de novembro de 2026 com WordPress 7.1.4, PHP 8.4.24,
 MariaDB 11.8.6 e Chromium Headless 150.
 
-Foram aprovadas **335 verificações**: 71 de integração do app, 57 de importação
+Foram aprovadas **452 verificações**: 71 de integração do app, 57 de importação
 e metadados de atualização, 81 de integração com o Telegram, 49 de integração
 com o Gemini, 28 de navegação do app, oito de importação pela tela administrativa,
-27 do Telegram/Gemini pela interface,
+27 do Telegram/Gemini pela interface, 62 de gastos pessoais, 31 de gastos pelo
+Telegram, 24 de gastos pelo navegador,
 seis com links permanentes padrão e oito de atualização nativa do WordPress
 com instalação real do pacote ZIP.
 Os arquivos PHP passaram pela verificação de sintaxe e o JavaScript passou
@@ -89,3 +90,23 @@ instalação do ZIP usam os componentes reais do ambiente de validação.
 * Diagnóstico administrativo sem resposta bruta da API, credenciais, texto ou áudio; reconhecimento válido remove o diagnóstico resolvido.
 * Teste administrativo com o provedor selecionado, sem criar abastecimento; usuário sem permissão não pode executar a ação.
 * Tela móvel e configuração administrativa verificadas no navegador, incluindo consentimento após trocar de OpenAI para Gemini e aviso da faixa gratuita.
+
+## Meus Gastos e integração dos serviços
+
+* Cadastro, edição, exclusão, paginação, busca e filtros de gastos em contas WordPress reais.
+* Valores brasileiros com centavos, rejeição de valores inválidos e agregação decimal conhecida (R$ 0,10 + R$ 0,20 = R$ 0,30).
+* Totais, média diária, maior gasto, percentuais, evolução, pagamento e comparação com período anterior verificados com valores conhecidos.
+* Categorias individuais, criação, cores seguras, renomeação, arquivamento e reativação sem perda de histórico.
+* Rejeição de acesso direto a IDs de despesas/categorias de outra conta, inclusive por administrador na API do app.
+* Bloqueio por serviço e suspensão, filtros SQL preparados e pesquisa literal de caracteres especiais.
+* Exportação/apagamento pela privacidade WordPress, incluindo mais de 100 despesas, sem afetar outra conta.
+* Registro de despesa por áudio e texto no mesmo bot, com o modelo Gemini Flash-Lite configurado e uma interpretação por mensagem.
+* Data padrão da mensagem, categorias próprias, esclarecimento de valor/categoria, complementos por áudio e confirmação opcional.
+* Identificação de serviço no reprocessamento da fila, deduplicação, falha de notificação, bloqueio e desvinculação durante reconhecimento.
+* Interface do serviço revisada em 320, 390, 768 e 1440 pixels; edição, exclusão, categorias, gráficos e CSV exercitados no navegador.
+* Despesa recebida por webhook HTTP aparece no dashboard da mesma conta; outra conta permanece sem acesso aos registros.
+* Atualização nativa do pacote preserva gastos, categorias e pendências financeiras, além dos dados e configurações anteriores.
+
+A interpretação linguística das despesas e a disponibilidade/cota do provedor
+precisam ser verificadas com a chave do site e áudios reais. Os testes locais
+usam respostas controladas de IA, inclusive para o modelo Flash-Lite.

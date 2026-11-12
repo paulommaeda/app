@@ -183,3 +183,20 @@ corresponde a `PDS_Telegram_Client::settings()["ai_provider"]`. A troca de prove
 é autorizada no portal e preserva a identidade WordPress. O módulo mantém suas
 próprias verificações de acesso ao serviço e aos dados. O financeiro não deve
 receber acesso apenas por um usuário compartilhar um veículo.
+
+## Meus Gastos (1.4.0)
+
+O serviço `gastos` usa os mesmos usuários e o mesmo bot. As tabelas
+`pds_expenses`, `pds_expense_categories` e `pds_tg_expense_drafts` são privadas por
+`user_id`. O campo `pds_tg_updates.record_service` distingue o registro de cada
+módulo, preservando os registros anteriores como combustível.
+
+O reconhecimento tem `intent` fuel/expense/other/unclear e o objeto nullable
+`expense`. O roteador entrega o resultado uma única vez ao serviço escolhido,
+que valida acesso e propriedade antes de gravar. Campos numéricos ambíguos não
+são presumidos e uma pendência de outro serviço precisa ser resolvida.
+
+Eventos `pds_expense_created`, `pds_expense_updated` e `pds_expense_deleted` recebem
+registro e ID nativo do usuário. Um plugin financeiro futuro pode consumir
+esses eventos respeitando a conta e evitando duplicar a origem interna.
+Veja [GASTOS.md](GASTOS.md) para API, dados e alcance.

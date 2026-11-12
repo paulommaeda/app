@@ -1,6 +1,6 @@
-# Telegram: abastecimentos por áudio e texto
+# Telegram: abastecimentos e gastos pessoais por áudio e texto
 
-Disponível a partir da versão 1.2.0, com Gemini na versão 1.3.0. A integração fica
+Disponível a partir da versão 1.2.0, com Gemini na versão 1.3.0 e gastos pessoais na 1.4.0. A integração fica
 desativada até o responsável
 pelo portal configurar as credenciais e ativar a conexão. Cada pessoa vincula seu
 próprio Telegram à conta WordPress; não existe vínculo por nome, telefone ou e-mail
@@ -66,6 +66,15 @@ Somente seu hash fica na tabela de vínculos. Um Telegram não pode ser vinculad
 simultaneamente a duas contas WordPress. Para trocar, desvincule primeiro.
 Não envie a senha do WordPress ao bot. Conversas em grupos são ignoradas.
 
+## Enviar um gasto pessoal
+
+O mesmo bot registra gastos no serviço **Meus Gastos**. Exemplo: **gastei 35 reais
+no almoço hoje, no Pix**. Categorias, histórico e dashboard pertencem à mesma conta
+WordPress. O bot identifica combustível ou gasto em uma interpretação, preservando
+a configuração existente da IA. O veículo padrão vale somente para combustível.
+Use `/gastos` e `/categorias`; veja [GASTOS.md](GASTOS.md) para regras, categorias,
+complementos, confirmações e privacidade.
+
 ## Enviar um abastecimento
 
 Exemplo de mensagem falada ou escrita:
@@ -120,7 +129,7 @@ Bloqueios e suspensão do portal também valem no Telegram.
 
 O padrão para novas instalações é **Gemini (Google)**, modelo `gemini-3.8-flash`,
 com entrada de áudio e saída estruturada. Um áudio ou texto usa uma solicitação
-para reconhecer os campos do abastecimento, sem passar pela OpenAI. O áudio é
+para reconhecer os campos do lançamento, sem passar pela OpenAI. O áudio é
 anexado em memória, dentro do limite de 5 MB; não é publicado nem enviado a uma
 API separada de arquivos.
 

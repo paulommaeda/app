@@ -85,6 +85,46 @@ final class PDS_Install {
             KEY created_by (created_by),
             UNIQUE KEY external_ref (external_ref)
         ) ENGINE=InnoDB $collate;" );
+        dbDelta( "CREATE TABLE {$prefix}pds_expense_categories (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            name varchar(60) NOT NULL,
+            slug varchar(170) NOT NULL,
+            color varchar(7) NOT NULL DEFAULT '#84928C',
+            active tinyint(1) NOT NULL DEFAULT 1,
+            created_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY user_slug (user_id,slug)
+        ) ENGINE=InnoDB $collate;" );
+        dbDelta( "CREATE TABLE {$prefix}pds_expenses (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            category_id bigint(20) unsigned NOT NULL,
+            spent_on date NOT NULL,
+            description varchar(180) NOT NULL,
+            amount decimal(12,2) NOT NULL,
+            payment_method varchar(16) NOT NULL DEFAULT '',
+            merchant varchar(120) NOT NULL DEFAULT '',
+            notes varchar(500) NOT NULL DEFAULT '',
+            source varchar(16) NOT NULL DEFAULT 'manual',
+            external_ref varchar(96) DEFAULT NULL,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            KEY user_date (user_id,spent_on),
+            KEY user_category (user_id,category_id,spent_on),
+            UNIQUE KEY external_ref (external_ref)
+        ) ENGINE=InnoDB $collate;" );
+        dbDelta( "CREATE TABLE {$prefix}pds_tg_expense_drafts (
+            user_id bigint(20) unsigned NOT NULL,
+            telegram_id varchar(24) NOT NULL,
+            source_ref varchar(64) NOT NULL,
+            token varchar(32) NOT NULL,
+            data longtext NOT NULL,
+            expires_at bigint(20) unsigned NOT NULL,
+            PRIMARY KEY  (user_id),
+            KEY expires_at (expires_at)
+        ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$prefix}pds_rate_limits (
             limit_key varchar(64) NOT NULL,
             hits int unsigned NOT NULL DEFAULT 1,
@@ -130,6 +170,7 @@ final class PDS_Install {
             status varchar(16) NOT NULL DEFAULT 'pending',
             attempts tinyint unsigned NOT NULL DEFAULT 0,
             record_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            record_service varchar(16) NOT NULL DEFAULT 'combustivel',
             error_code varchar(48) NOT NULL DEFAULT '',
             created_at datetime NOT NULL,
             locked_until bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -149,7 +190,7 @@ final class PDS_Install {
             PRIMARY KEY  (user_id),
             KEY expires_at (expires_at)
         ) ENGINE=InnoDB $collate;" );
-        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts' ) as $table ) {
+        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts', 'pds_expenses', 'pds_expense_categories', 'pds_tg_expense_drafts' ) as $table ) {
             $name = $prefix . $table;
             if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $name ) ) ) !== $name ) {
                 return new WP_Error( 'pds_schema', 'Não foi possível criar as tabelas do portal. Verifique as permissões do banco de dados e reative o plugin.' );

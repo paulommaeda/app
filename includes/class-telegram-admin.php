@@ -82,7 +82,7 @@ final class PDS_Telegram_Admin {
     public static function test() {
         self::authorize( 'pds_telegram_test' );
         $result = self::test_connection();
-        self::finish( is_wp_error( $result ) ? $result->get_error_message() : 'Reconhecimento testado com sucesso em ' . PDS_Telegram_Client::provider_name() . '. Nenhum abastecimento foi criado.', is_wp_error( $result ) );
+        self::finish( is_wp_error( $result ) ? $result->get_error_message() : 'Reconhecimento testado com sucesso em ' . PDS_Telegram_Client::provider_name() . '. Nenhum lançamento foi criado.', is_wp_error( $result ) );
     }
 
     public static function page() {

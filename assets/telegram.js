@@ -30,7 +30,7 @@
       const select=$('pds-tg-vehicle');select.replaceChildren(new Option('Perguntar quando houver mais de um','0'));
       data.vehicles.forEach(v=>select.add(new Option(v.name+(!v.is_owner?' (compartilhado)':''),String(v.id))));select.value=String(data.default_vehicle_id);
       $('pds-tg-confirm').checked=data.confirm_before_save;$('pds-tg-global-confirm').hidden=!data.global_confirmation;
-      $('pds-tg-limits').textContent='Até '+data.voice_seconds+' segundos por áudio e '+data.daily_limit+' mensagens com reconhecimento por dia. Com dados completos, o registro é automático quando a confirmação está desmarcada.';
+      $('pds-tg-limits').textContent='Até '+data.voice_seconds+' segundos por áudio e '+data.daily_limit+' mensagens com reconhecimento por dia. Abastecimentos e gastos com dados completos são salvos automaticamente quando a confirmação está desmarcada.';
     }
   }
   async function run(action){if(busy)return;busy=true;card.querySelectorAll('button').forEach(b=>b.disabled=true);message('');try{await action();}catch(e){message(e.message||'Confira sua conexão e tente novamente.',true);}finally{busy=false;card.querySelectorAll('button').forEach(b=>b.disabled=false);}}

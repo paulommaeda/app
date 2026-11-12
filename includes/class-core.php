@@ -8,6 +8,7 @@ final class PDS_Core {
         add_action( 'init', static function () { do_action( 'pds_register_services' ); }, 20 );
         add_shortcode( 'portal_servicos', array( __CLASS__, 'shortcode' ) );
         add_shortcode( 'portal_combustivel', static function () { return self::shortcode( array( 'service' => 'combustivel' ) ); } );
+        add_shortcode( 'portal_gastos', static function () { return self::shortcode( array( 'service' => 'gastos' ) ); } );
         add_action( 'template_redirect', array( __CLASS__, 'prepare_page' ), 0 );
         add_filter( 'template_include', array( __CLASS__, 'template' ), 99 );
         add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ) );
@@ -34,7 +35,7 @@ final class PDS_Core {
         if ( ! is_singular( 'page' ) ) { return false; }
         $post = get_queried_object();
         $settings = get_option( 'pds_settings', array() );
-        return (int) get_queried_object_id() === (int) ( $settings['page_id'] ?? 0 ) || ( $post && ( has_shortcode( $post->post_content, 'portal_servicos' ) || has_shortcode( $post->post_content, 'portal_combustivel' ) ) );
+        return (int) get_queried_object_id() === (int) ( $settings['page_id'] ?? 0 ) || ( $post && ( has_shortcode( $post->post_content, 'portal_servicos' ) || has_shortcode( $post->post_content, 'portal_combustivel' ) || has_shortcode( $post->post_content, 'portal_gastos' ) ) );
     }
 
     public static function prepare_page() {
@@ -94,6 +95,7 @@ final class PDS_Core {
         $paths = array(
             'grid' => '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
             'fuel' => '<path d="M4 21V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v17M2 21h14M4 11h10M17 5l4 4v9a2 2 0 0 1-4 0v-4h-3"/><path d="M18 6v4h3"/>',
+            'wallet' => '<path d="M20 7H5a2 2 0 0 1 0-4h13v4M3 5v14a2 2 0 0 0 2 2h15V7M20 11h-6v6h6"/><circle cx="16" cy="14" r=".6"/>',
             'user' => '<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
             'arrow' => '<path d="M5 12h14m-6-6 6 6-6 6"/>',
             'plus' => '<path d="M12 5v14M5 12h14"/>',

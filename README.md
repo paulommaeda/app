@@ -1,9 +1,9 @@
-# Portal de Serviços — Meu Combustível
+# Portal de Serviços
 
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 O primeiro serviço controla veículos, abastecimentos, gastos, consumo e descontos.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.3.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.4.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.3.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.4.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -73,6 +73,20 @@ sem guardar mensagens privadas nem credenciais nos diagnósticos.
 O WordPress precisa usar HTTPS e ter o agendamento funcionando. A integração
 fica desativada até configurar as chaves no site; nenhuma credencial acompanha
 o código. Consulte [o manual do Telegram](docs/TELEGRAM.md).
+
+## Meus Gastos (1.4.0)
+
+O segundo serviço do portal registra gastos pessoais por conta WordPress:
+valor em reais, descrição, data, categoria, pagamento e estabelecimento.
+Há cadastro e edição pelo front-end, categorias com cores e arquivamento,
+histórico paginado e CSV, além do dashboard com filtros, distribuição por
+categoria, evolução, pagamentos e comparação com o período anterior.
+
+O mesmo bot aceita **“gastei 35 reais no almoço hoje, no Pix”** por áudio ou texto.
+Ele identifica o serviço em uma única interpretação, pergunta dados ausentes e
+respeita a confirmação opcional. Usuários, histórico de combustível, modelo da IA
+e vínculos existentes são preservados. Gastos pessoais pertencem somente à conta.
+Consulte [o manual de Meus Gastos](docs/GASTOS.md).
 
 ## Próximos serviços
 

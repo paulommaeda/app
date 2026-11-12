@@ -1,17 +1,17 @@
-=== Portal de Serviços — Meu Combustível ===
+=== Portal de Serviços ===
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Portal de serviços com usuários WordPress e controle de combustível individual.
+Portal de serviços com usuários WordPress, combustível e gastos pessoais.
 
 == Description ==
 
 Uma única instalação reúne cadastro, login, recuperação de senha, conta pessoal,
-catálogo de serviços e o primeiro módulo: Meu Combustível.
+catálogo de serviços, Meu Combustível e Meus Gastos.
 
 * Cadastro com papel restrito de cliente, usando wp_users e autenticação nativa.
 * Contas WordPress existentes entram com seu e-mail e sua senha atual.
@@ -28,6 +28,7 @@ catálogo de serviços e o primeiro módulo: Meu Combustível.
 * Sem JavaScript de CDN ou banco separado; atualizações consultadas no GitHub.
 * Importação do banco antigo por SQL/JSON ou leitura das tabelas existentes.
 * Telegram com vínculo individual, voz/texto, registro automático e confirmação opcional.
+* Gastos pessoais privados, categorias, datas, pagamentos e dashboard com filtros.
 
 == Installation ==
 
@@ -55,10 +56,21 @@ Use Testar reconhecimento para conferir a chave e o modelo. Ao trocar o provedor
 os usuários confirmam o novo uso em Minha conta, mantendo seu vínculo e veículo.
 Veja docs/TELEGRAM.md. A integração fica desativada até essa configuração.
 
+== Meus Gastos ==
+
+Abra Meus Gastos no catálogo do portal. Registre descrição, valor, data e categoria
+pelo front-end ou pelo mesmo bot: gastei 35 reais no almoço hoje, no Pix.
+Categorias podem ser criadas, renomeadas, coloridas, arquivadas e reativadas.
+O dashboard mostra totais, evolução, pagamentos e distribuição por categoria com
+os mesmos filtros do histórico e da exportação CSV. Os dados pertencem à conta
+WordPress e não são compartilhados com participantes dos veículos.
+Veja docs/GASTOS.md para o funcionamento e limites.
+
 == Shortcodes ==
 
 [portal_servicos] - catálogo de serviços, login e conta pessoal.
 [portal_combustivel] - abre diretamente o serviço Meu Combustível.
+[portal_gastos] - abre diretamente o serviço Meus Gastos.
 
 Insira em páginas publicadas. Mantenha apenas um desses shortcodes em cada página.
 Se usar uma página existente como principal, selecione-a nas configurações e
@@ -132,6 +144,14 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.4.0 =
+* Serviço Meus Gastos com despesas e categorias privadas por conta WordPress.
+* Dashboard com período, categorias, pagamentos, comparação e evolução de gastos.
+* Cadastro, edição, exclusão, histórico paginado e exportação CSV pelo portal.
+* O mesmo bot registra gastos pessoais e abastecimentos por voz ou texto, com uma interpretação.
+* Esclarecimentos para dados ausentes, confirmação opcional e prevenção de duplicação por serviço.
+* Privacidade, bloqueio independente do serviço e preservação dos usuários e dados existentes.
 
 = 1.3.0 =
 * Gemini (Google) para áudio e texto em uma solicitação, com opção de faixa gratuita.

@@ -2,7 +2,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class PDS_Telegram_Fuel {
-    private static function draft( $uid, $telegram ) {
+    public static function draft( $uid, $telegram ) {
         global $wpdb;
         $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_tg_drafts WHERE user_id=%d AND telegram_id=%s AND expires_at>%d", $uid, $telegram, time() ), ARRAY_A );
         if ( ! $row ) { return null; }
@@ -43,7 +43,7 @@ final class PDS_Telegram_Fuel {
         return 1 === count( $vehicles ) ? (int) $vehicles[0]['id'] : 0;
     }
 
-    public static function handle( $job, $payload, $link ) {
+    public static function handle( $job, $payload, $link, $recognized = null ) {
         global $wpdb;
         $uid = get_current_user_id(); $telegram = $job['telegram_id'];
         if ( ! pds_user_can_access_service( 'combustivel', $uid ) ) { return PDS_Telegram::reply( 'O serviço Meu Combustível não está liberado para sua conta.' ); }
@@ -76,10 +76,10 @@ final class PDS_Telegram_Fuel {
         if ( isset( $payload['audio'] ) && ( $payload['audio']['duration'] <= 0 || $payload['audio']['duration'] > (int) $config['voice_seconds'] || $payload['audio']['size'] > PDS_Telegram_Client::MAX_AUDIO_BYTES ) ) { return PDS_Telegram::reply( 'Envie um áudio de até ' . (int) $config['voice_seconds'] . ' segundos e 5 MB, com um abastecimento por mensagem.' ); }
         if ( ! $text && ! isset( $payload['audio'] ) ) { return PDS_Telegram::reply( 'Envie um áudio ou uma mensagem de texto sobre o abastecimento.' ); }
         if ( ( $link['consent_provider'] ?? 'openai' ) !== $config['ai_provider'] ) { return PDS_Telegram::reply( 'O portal mudou o provedor de reconhecimento para ' . PDS_Telegram_Client::provider_name() . '. Abra Minha conta → Telegram no portal e confirme o uso das mensagens antes de enviar outro abastecimento.' ); }
-        if ( ! PDS_Telegram::quota( 'tg-ai', (string) $uid, (int) $config['daily_limit'], DAY_IN_SECONDS ) ) { return PDS_Telegram::reply( 'Você atingiu o limite diário de ' . (int) $config['daily_limit'] . ' mensagens com reconhecimento. Os registros pelo portal continuam disponíveis.' ); }
+        if ( null === $recognized && ! PDS_Telegram::quota( 'tg-ai', (string) $uid, (int) $config['daily_limit'], DAY_IN_SECONDS ) ) { return PDS_Telegram::reply( 'Você atingiu o limite diário de ' . (int) $config['daily_limit'] . ' mensagens com reconhecimento. Os registros pelo portal continuam disponíveis.' ); }
         $reference_date = wp_date( 'Y-m-d', (int) $payload['date'], wp_timezone() );
         $previous = $draft ? $draft['data'] : array();
-        $extracted = PDS_Telegram_Client::recognize( $text, $payload['audio']['file_id'] ?? null, $reference_date, $previous );
+        $extracted = $recognized ?? PDS_Telegram_Client::recognize( $text, $payload['audio']['file_id'] ?? null, $reference_date, $previous );
         if ( is_wp_error( $extracted ) ) { return PDS_Telegram::reply( $extracted->get_error_message() ); }
         if ( 'fuel' !== $extracted['intent'] ) { return PDS_Telegram::reply( 'Posso registrar abastecimentos por áudio ou texto. Use /ajuda para ver um exemplo.' ); }
         if ( ! $draft ) {
@@ -152,7 +152,7 @@ final class PDS_Telegram_Fuel {
         $request = new WP_REST_Request( 'POST' ); $request->set_url_params( array( 'id' => $data['vehicle_id'] ) ); $request->set_body_params( array_intersect_key( $data, array_fill_keys( array( 'filled_on', 'odometer', 'fuel_type', 'price', 'liters', 'paid', 'full_tank', 'notes' ), true ) ) );
         $result = PDS_Fuel::save_record( $request, 'telegram:' . $draft['source_ref'] );
         if ( is_wp_error( $result ) ) { return PDS_Telegram::reply( $result->get_error_message() . ' Envie a correção por aqui ou use /cancelar.' ); }
-        $wpdb->update( $wpdb->prefix . 'pds_tg_updates', array( 'record_id' => $result['id'] ), array( 'id' => $job['id'] ) );
+        $wpdb->update( $wpdb->prefix . 'pds_tg_updates', array( 'record_id' => $result['id'], 'record_service' => 'combustivel' ), array( 'id' => $job['id'] ) );
         $wpdb->delete( $wpdb->prefix . 'pds_tg_drafts', array( 'user_id' => $uid ) );
         return self::saved_reply( $result['id'] );
     }
