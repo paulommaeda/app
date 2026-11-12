@@ -1,6 +1,7 @@
 # Telegram: abastecimentos por áudio e texto
 
-Disponível a partir da versão 1.2.0. A integração fica desativada até o responsável
+Disponível a partir da versão 1.2.0, com Gemini na versão 1.3.0. A integração fica
+desativada até o responsável
 pelo portal configurar as credenciais e ativar a conexão. Cada pessoa vincula seu
 próprio Telegram à conta WordPress; não existe vínculo por nome, telefone ou e-mail
 informado na conversa.
@@ -10,9 +11,14 @@ informado na conversa.
 1. No Telegram, abra [@BotFather](https://t.me/BotFather), envie `/newbot` e crie
    um bot exclusivo para o portal. Guarde o token fornecido.
 2. No WordPress, abra **Portal de Serviços → Telegram**.
-3. Informe o token e a chave de um projeto da API da OpenAI com faturamento/cota
-   disponível. A chave é central: usuários do portal não precisam de chaves próprias.
-4. Salve as configurações e clique em **Ativar conexão**. O WordPress precisa
+3. Selecione **Gemini (Google)** e informe a chave criada no
+   [Google AI Studio](https://aistudio.google.com/apikey). Para usar a faixa
+   gratuita, mantenha o projeto no nível gratuito e não habilite faturamento.
+   A chave é central: usuários do portal não precisam de chaves próprias.
+   OpenAI continua como alternativa, exigindo créditos/cota da API.
+4. Salve e use **Testar reconhecimento** para conferir a chave e o modelo.
+   O teste envia apenas um texto de teste, consome uma solicitação da cota e
+   não cria abastecimento. Depois clique em **Ativar conexão**. O WordPress precisa
    ter endereço público HTTPS e permitir requisições de entrada do Telegram.
 5. Abra o portal com uma conta de cliente, entre em **Minha conta → Telegram**
    e faça o vínculo para testar um abastecimento.
@@ -20,7 +26,8 @@ informado na conversa.
 As credenciais são guardadas criptografadas no banco, sem autoload, e não são
 exibidas novamente no formulário. Deixar um campo vazio mantém a credencial.
 Alterar as chaves de segurança/salts do WordPress exige informar as credenciais
-novamente. Opcionalmente, defina `PDS_TELEGRAM_BOT_TOKEN` e `PDS_OPENAI_API_KEY`
+novamente. Opcionalmente, defina `PDS_TELEGRAM_BOT_TOKEN`, `PDS_GEMINI_API_KEY`
+e/ou `PDS_OPENAI_API_KEY`
 no `wp-config.php`; nesse caso os campos correspondentes ficam bloqueados no painel.
 Não coloque tokens ou chaves no GitHub.
 
@@ -41,7 +48,9 @@ ativado, o cron externo é necessário. O administrador pode executar uma etapa
 manualmente com **Processar mensagens pendentes** e conferir os contadores da fila.
 Cada etapa processa até duas mensagens; solicitações simultâneas não processam a
 mesma etapa em paralelo. A hospedagem deve permitir conexões HTTPS de saída para
-`api.telegram.org` e `api.openai.com` e requisições internas ao próprio WordPress.
+`api.telegram.org` e ao provedor escolhido (`generativelanguage.googleapis.com`
+para Gemini ou `api.openai.com` para OpenAI), além de requisições internas ao
+próprio WordPress.
 
 ## Vínculo do usuário
 
@@ -109,13 +118,34 @@ Bloqueios e suspensão do portal também valem no Telegram.
 
 ## Modelos, consumo e limites
 
-Padrões desta versão: `gpt-transcribe` para áudio e `gpt-4.1-mini` para interpretação
-com saída estruturada. Os modelos podem ser alterados no painel, conforme a
-disponibilidade do projeto da API. Não existe chamada real à OpenAI apenas por
-salvar as credenciais ou ativar a conexão com o bot.
+O padrão para novas instalações é **Gemini (Google)**, modelo `gemini-3.8-flash`,
+com entrada de áudio e saída estruturada. Um áudio ou texto usa uma solicitação
+para reconhecer os campos do abastecimento, sem passar pela OpenAI. O áudio é
+anexado em memória, dentro do limite de 5 MB; não é publicado nem enviado a uma
+API separada de arquivos.
 
-Um áudio usa transcrição e interpretação; uma mensagem de texto usa interpretação.
-O consumo é feito na chave de API configurada, conforme a cobrança do provedor.
+O Google oferece faixa gratuita para esse modelo, sujeita à elegibilidade e às
+cotas do projeto. Confira as cotas no AI Studio: não há promessa de uso ilimitado
+ou gratuidade permanente. Um projeto com faturamento ativado pode gerar cobrança.
+Na faixa gratuita, o Google pode usar o conteúdo para melhorar seus produtos,
+conforme os [preços e condições](https://ai.google.dev/gemini-api/docs/pricing).
+A assinatura do aplicativo Gemini não é necessária para gerar uma chave da API.
+
+Instalações anteriores mantêm OpenAI até o administrador selecionar Gemini e
+salvar sua chave. Os modelos OpenAI continuam `gpt-transcribe` para transcrição
+e `gpt-4.1-mini` para os campos: um áudio usa duas solicitações; texto usa uma.
+Os nomes de modelos podem ser alterados no painel conforme o acesso do projeto.
+
+A troca de provedor não remove o bot, contas, vínculos, veículos ou histórico.
+Cada usuário já vinculado abre **Minha conta → Telegram**, confirma o uso pelo
+novo provedor e salva as preferências, sem refazer o pareamento. Até essa
+confirmação, nenhum conteúdo da conta é enviado ao novo provedor.
+
+O plugin usa somente o provedor selecionado. Ao atingir a cota, explica a
+limitação e mantém o cadastro manual pelo portal. Não ativa faturamento nem usa
+outro provedor como alternativa automática. Salvar credenciais ou ativar o bot
+não chama uma IA; o botão de teste e mensagens com reconhecimento fazem chamadas.
+
 O limite inicial é de 30 mensagens de reconhecimento por usuário/dia, áudios de até
 120 segundos e tamanho máximo de 5 MB. Limites diário e de duração são configuráveis.
 Comandos e confirmações não fazem reconhecimento. Contas não vinculadas ou sem
@@ -124,8 +154,10 @@ acesso ao serviço não podem disparar reconhecimento pago.
 ## Dados, duplicações e privacidade
 
 O áudio é baixado para processamento em memória e não é publicado nem salvo na
-biblioteca de mídia. O conteúdo necessário é enviado ao Telegram e à OpenAI,
-segundo suas respectivas políticas. O plugin pede consentimento ao gerar o vínculo.
+biblioteca de mídia. O conteúdo necessário é enviado ao Telegram e ao provedor selecionado,
+segundo suas respectivas políticas. O portal mostra o provedor e as condições
+da faixa gratuita. O plugin pede consentimento ao gerar o vínculo e ao trocar
+o provedor.
 Ele não envia senhas WordPress, e-mails de outras contas ou a lista de usuários à IA.
 
 Mensagens na fila e campos de pendências ficam em tabelas internas do WordPress,
@@ -149,9 +181,27 @@ Abastecimentos já gravados seguem as regras normais do app.
 O filtro `pds_telegram_reply($reply, $payload, $link)` é executado após identificar
 a conta nativa e somente em conversa privada. Um próximo plugin financeiro pode
 retornar uma resposta nesse filtro e implementar seu próprio reconhecimento,
-verificando `pds_user_can_access_service('financeiro')` e o proprietário dos dados.
+verificando `pds_user_can_access_service('financeiro')`, o proprietário dos dados
+e se `consent_provider` do vínculo corresponde ao `ai_provider` configurado.
 Um retorno `null` mantém o fluxo de combustível. O vínculo Telegram/WordPress
 pode ser reutilizado; compartilhar um carro não concede acesso a finanças de terceiros.
+
+## Diagnóstico de falhas
+
+O painel mostra a última falha de reconhecimento com provedor, etapa áudio/texto,
+status HTTP, categoria e horário UTC. O conteúdo é uma classificação interna do
+plugin: não armazena resposta bruta da API, chave, texto, transcrição ou áudio.
+Um reconhecimento válido ou teste bem-sucedido remove o diagnóstico resolvido.
+
+* **Chave recusada/expirada:** substitua a chave no campo do provedor selecionado.
+* **Permissão:** confira a API habilitada, as restrições da chave e o acesso ao modelo.
+* **Cota/limite de requisições:** confira os limites do projeto no AI Studio e aguarde
+  a renovação aplicável; o portal manual permanece disponível.
+* **Sem créditos/limite financeiro (OpenAI):** confira o faturamento da API.
+* **Modelo indisponível:** selecione um modelo de áudio/JSON disponível no projeto.
+* **Rede:** verifique conexões HTTPS de saída, certificados e firewall da hospedagem.
+* **Formato recusado/resposta incompleta:** confira o modelo e teste uma descrição
+  curta de um único abastecimento; nenhuma resposta parcial é gravada.
 
 ## Verificação antes de uso real
 
@@ -166,3 +216,8 @@ Referências de implementação:
 - [Transcrição de arquivos](https://developers.openai.com/api/docs/guides/transcription)
 - [Referência de transcrição](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create)
 - [Saída estruturada](https://developers.openai.com/api/docs/guides/structured-outputs)
+
+- [Gemini: compreensão de áudio](https://ai.google.dev/gemini-api/docs/audio)
+- [Gemini: saída estruturada](https://ai.google.dev/gemini-api/docs/structured-output)
+- [Gemini: preços e condições](https://ai.google.dev/gemini-api/docs/pricing)
+- [Gemini: criar chave](https://aistudio.google.com/apikey)

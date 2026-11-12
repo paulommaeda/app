@@ -75,11 +75,11 @@ final class PDS_Telegram_Fuel {
         $config = PDS_Telegram_Client::settings();
         if ( isset( $payload['audio'] ) && ( $payload['audio']['duration'] <= 0 || $payload['audio']['duration'] > (int) $config['voice_seconds'] || $payload['audio']['size'] > PDS_Telegram_Client::MAX_AUDIO_BYTES ) ) { return PDS_Telegram::reply( 'Envie um áudio de até ' . (int) $config['voice_seconds'] . ' segundos e 5 MB, com um abastecimento por mensagem.' ); }
         if ( ! $text && ! isset( $payload['audio'] ) ) { return PDS_Telegram::reply( 'Envie um áudio ou uma mensagem de texto sobre o abastecimento.' ); }
+        if ( ( $link['consent_provider'] ?? 'openai' ) !== $config['ai_provider'] ) { return PDS_Telegram::reply( 'O portal mudou o provedor de reconhecimento para ' . PDS_Telegram_Client::provider_name() . '. Abra Minha conta → Telegram no portal e confirme o uso das mensagens antes de enviar outro abastecimento.' ); }
         if ( ! PDS_Telegram::quota( 'tg-ai', (string) $uid, (int) $config['daily_limit'], DAY_IN_SECONDS ) ) { return PDS_Telegram::reply( 'Você atingiu o limite diário de ' . (int) $config['daily_limit'] . ' mensagens com reconhecimento. Os registros pelo portal continuam disponíveis.' ); }
-        if ( isset( $payload['audio'] ) ) { $text = PDS_Telegram_Client::transcribe( $payload['audio']['file_id'] ); if ( is_wp_error( $text ) ) { return PDS_Telegram::reply( $text->get_error_message() ); } }
         $reference_date = wp_date( 'Y-m-d', (int) $payload['date'], wp_timezone() );
         $previous = $draft ? $draft['data'] : array();
-        $extracted = PDS_Telegram_Client::extract( $text, $reference_date, $previous );
+        $extracted = PDS_Telegram_Client::recognize( $text, $payload['audio']['file_id'] ?? null, $reference_date, $previous );
         if ( is_wp_error( $extracted ) ) { return PDS_Telegram::reply( $extracted->get_error_message() ); }
         if ( 'fuel' !== $extracted['intent'] ) { return PDS_Telegram::reply( 'Posso registrar abastecimentos por áudio ou texto. Use /ajuda para ver um exemplo.' ); }
         if ( ! $draft ) {

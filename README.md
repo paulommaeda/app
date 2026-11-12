@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 O primeiro serviço controla veículos, abastecimentos, gastos, consumo e descontos.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.2.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.3.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.2.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.3.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -55,10 +55,20 @@ autenticada do GitHub nem de serviços de assinatura pagos.
 
 ## Telegram por áudio e texto
 
-Configure o bot e a chave da OpenAI em **Portal de Serviços → Telegram** e ative
-a conexão. Cada usuário faz o vínculo em **Minha conta → Telegram**, escolhe um
+Em **Portal de Serviços → Telegram**, escolha **Gemini (Google)**, informe a chave
+criada no [Google AI Studio](https://aistudio.google.com/apikey), salve e use
+**Testar reconhecimento**. O Gemini oferece faixa gratuita sujeita ao modelo
+e às cotas do projeto. Para usar sem cobrança, mantenha o projeto no nível
+gratuito, sem habilitar faturamento. Na faixa gratuita, o Google pode usar o
+conteúdo para melhorar seus produtos. OpenAI continua como alternativa com
+créditos próprios da API. Depois de configurar o token do bot, ative a conexão. Cada usuário faz o vínculo em **Minha conta → Telegram**, escolhe um
 veículo padrão e envia áudio ou texto. Dados completos são salvos automaticamente;
 dados ausentes geram perguntas. A confirmação antes de salvar é opcional.
+
+Na troca de OpenAI para Gemini, salve as novas configurações e confirme o novo
+provedor em Minha conta. O bot, as contas WordPress, os veículos e os dados são
+preservados. O painel identifica falhas de chave, permissão, cota, modelo ou rede
+sem guardar mensagens privadas nem credenciais nos diagnósticos.
 
 O WordPress precisa usar HTTPS e ter o agendamento funcionando. A integração
 fica desativada até configurar as chaves no site; nenhuma credencial acompanha

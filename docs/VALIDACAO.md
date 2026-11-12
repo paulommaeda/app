@@ -1,11 +1,12 @@
-# Validação da versão 1.2.0
+# Validação da versão 1.3.0
 
 Validação local em 12 de novembro de 2026 com WordPress 7.1.4, PHP 8.4.24,
 MariaDB 11.8.6 e Chromium Headless 150.
 
-Foram aprovadas **275 verificações**: 71 de integração do app, 57 de importação
-e metadados de atualização, 81 de integração com o Telegram, 28 de navegação do
-app, oito de importação pela tela administrativa, 16 do Telegram pela interface,
+Foram aprovadas **335 verificações**: 71 de integração do app, 57 de importação
+e metadados de atualização, 81 de integração com o Telegram, 49 de integração
+com o Gemini, 28 de navegação do app, oito de importação pela tela administrativa,
+27 do Telegram/Gemini pela interface,
 seis com links permanentes padrão e oito de atualização nativa do WordPress
 com instalação real do pacote ZIP.
 Os arquivos PHP passaram pela verificação de sintaxe e o JavaScript passou
@@ -70,8 +71,21 @@ bibliotecas de desenvolvimento ou capturas de tela no pacote de instalação.
 * Exportação e apagamento de dados pessoais, desvinculação e desativação administrativa.
 * Navegação real no navegador para configurar, vincular, salvar por áudio, confirmar e desvincular; tela móvel sem transbordamento horizontal.
 
-As respostas HTTP de **Telegram e OpenAI foram simuladas** nos testes locais,
+As respostas HTTP de **Telegram, Gemini e OpenAI foram simuladas** nos testes locais,
 sem usar credenciais reais ou enviar áudio a esses provedores. O teste com um
 áudio real deve ser feito no site HTTPS após cadastrar as credenciais e ativar
 a conexão, conforme `TELEGRAM.md`. Os testes de banco, WordPress, navegação e
 instalação do ZIP usam os componentes reais do ambiente de validação.
+
+## Gemini e troca de provedor
+
+* Reconhecimento de áudio OGG e texto com uma solicitação ao Gemini, sem chamada à OpenAI ou envio do áudio a um endereço público.
+* Chave criptografada no banco e enviada somente no cabeçalho ao endereço fixo do provedor; redirecionamentos desabilitados.
+* Saída JSON validada pelo mesmo esquema e regras do app, rejeitando respostas incompletas, truncadas, bloqueadas ou com tipos inválidos.
+* Migração real da tabela da versão 1.2, preservando Telegram e veículo padrão e registrando o consentimento original para OpenAI.
+* Troca de provedor sem desfazer o vínculo; reconhecimento bloqueado antes de consentimento renovado, com autorização pela conta nativa no portal.
+* Criação de abastecimento, complemento por áudio, confirmação, duplicações e histórico com Gemini.
+* Distinção entre chave, permissão, cota, modelo, rede, indisponibilidade e solicitação recusada; nenhuma alternativa automática para provedor pago.
+* Diagnóstico administrativo sem resposta bruta da API, credenciais, texto ou áudio; reconhecimento válido remove o diagnóstico resolvido.
+* Teste administrativo com o provedor selecionado, sem criar abastecimento; usuário sem permissão não pode executar a ação.
+* Tela móvel e configuração administrativa verificadas no navegador, incluindo consentimento após trocar de OpenAI para Gemini e aviso da faixa gratuita.

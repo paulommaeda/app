@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Portal de Serviços — Meu Combustível
  * Description: Portal com contas WordPress, catálogo extensível de serviços e controle individual de veículos e abastecimentos.
- * Version: 1.2.0
+ * Version: 1.3.0
  * Plugin URI: https://github.com/paulommaeda/app
  * Update URI: https://github.com/paulommaeda/app
  * Requires at least: 6.6
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PDS_VERSION', '1.2.0' );
+define( 'PDS_VERSION', '1.3.0' );
 define( 'PDS_FILE', __FILE__ );
 define( 'PDS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PDS_URL', plugin_dir_url( __FILE__ ) );

@@ -4,6 +4,7 @@
   if (!card || typeof PDS === 'undefined') return;
   const $ = id => document.getElementById(id);
   let busy = false;
+  let provider = '', needsConsent = false;
   function message(text, error = false) { const el=$('pds-tg-message');el.textContent=text;el.hidden=!text;el.classList.toggle('pds-alert-success',!error); }
   async function api(path,method='GET',data=null) {
     const url=new URL(PDS.api,location.href);
@@ -17,6 +18,10 @@
   }
   async function refresh() {
     const data=await api('telegram/link');
+    provider=data.ai_provider;needsConsent=data.needs_consent;
+    $('pds-tg-provider-name').textContent=data.provider_name;
+    $('pds-tg-gemini-note').hidden=provider!=='gemini';
+    $('pds-tg-renew-consent').hidden=!needsConsent;
     $('pds-tg-badge').textContent=!data.enabled?'Indisponível':data.linked?'Vinculado':'Não vinculado';
     $('pds-tg-unlinked').hidden=!data.enabled||data.linked;$('pds-tg-preferences').hidden=!data.enabled||!data.linked;
     if(!data.enabled){message('A integração ainda não foi ativada pelo responsável pelo portal.');return;}
@@ -31,10 +36,10 @@
   async function run(action){if(busy)return;busy=true;card.querySelectorAll('button').forEach(b=>b.disabled=true);message('');try{await action();}catch(e){message(e.message||'Confira sua conexão e tente novamente.',true);}finally{busy=false;card.querySelectorAll('button').forEach(b=>b.disabled=false);}}
   $('pds-tg-connect').addEventListener('click',()=>run(async()=>{
     if(!$('pds-tg-accept').checked)throw new Error('Confirme o uso das mensagens para reconhecimento.');
-    const result=await api('telegram/link','POST',{accepted:true});$('pds-tg-open').href=result.url;$('pds-tg-command').textContent=result.code;$('pds-tg-link-result').hidden=false;
+    const result=await api('telegram/link','POST',{accepted:true,ai_provider:provider});$('pds-tg-open').href=result.url;$('pds-tg-command').textContent=result.code;$('pds-tg-link-result').hidden=false;
   }));
   $('pds-tg-refresh').addEventListener('click',()=>run(refresh));
-  $('pds-tg-preferences').addEventListener('submit',event=>{event.preventDefault();run(async()=>{await api('telegram/preferences','PUT',{default_vehicle_id:Number($('pds-tg-vehicle').value),confirm_before_save:$('pds-tg-confirm').checked});message('Preferências salvas.');});});
+  $('pds-tg-preferences').addEventListener('submit',event=>{event.preventDefault();run(async()=>{if(needsConsent&&!$('pds-tg-accept-provider').checked)throw new Error('Confirme o uso das mensagens pelo novo provedor.');await api('telegram/preferences','PUT',{default_vehicle_id:Number($('pds-tg-vehicle').value),confirm_before_save:$('pds-tg-confirm').checked,ai_provider:provider,accepted:$('pds-tg-accept-provider').checked});await refresh();$('pds-tg-accept-provider').checked=false;message('Preferências salvas.');});});
   $('pds-tg-unlink').addEventListener('click',()=>run(async()=>{await api('telegram/link','DELETE',{});await refresh();message('Telegram desvinculado.');}));
   run(refresh);
 })();

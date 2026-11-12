@@ -109,6 +109,7 @@ final class PDS_Install {
             chat_id varchar(24) DEFAULT NULL,
             code_hash varchar(64) DEFAULT NULL,
             code_expires bigint(20) unsigned NOT NULL DEFAULT 0,
+            consent_provider varchar(16) NOT NULL DEFAULT 'openai',
             default_vehicle_id bigint(20) unsigned NOT NULL DEFAULT 0,
             confirm_before_save tinyint(1) NOT NULL DEFAULT 0,
             created_at datetime NOT NULL,

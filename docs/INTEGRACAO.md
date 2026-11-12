@@ -174,3 +174,12 @@ propriedade dos dados. Veja [TELEGRAM.md](TELEGRAM.md) para o contrato e configu
 Tabelas adicionais: `pds_tg_links`, `pds_tg_updates` e `pds_tg_drafts`. Elas não
 substituem `wp_users`. `pds_fuel_records.external_ref` é uma origem interna única
 para impedir gravações duplicadas de uma mensagem; não é aceita do cliente REST.
+
+## Provedores de reconhecimento (1.3.0)
+
+O vínculo Telegram inclui `consent_provider` (`openai` ou `gemini`). Antes de
+enviar conteúdo de um usuário a uma IA, um módulo deve conferir se esse valor
+corresponde a `PDS_Telegram_Client::settings()["ai_provider"]`. A troca de provedor
+é autorizada no portal e preserva a identidade WordPress. O módulo mantém suas
+próprias verificações de acesso ao serviço e aos dados. O financeiro não deve
+receber acesso apenas por um usuário compartilhar um veículo.

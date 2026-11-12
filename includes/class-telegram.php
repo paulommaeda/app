@@ -46,6 +46,8 @@ final class PDS_Telegram {
             'confirm_before_save' => ! empty( $link['confirm_before_save'] ), 'global_confirmation' => ! empty( $config['confirm_before_save'] ),
             'vehicles' => pds_user_can_access_service( 'combustivel' ) ? PDS_Fuel::vehicles()['vehicles'] : array(),
             'daily_limit' => (int) $config['daily_limit'], 'voice_seconds' => (int) $config['voice_seconds'],
+            'ai_provider' => $config['ai_provider'], 'provider_name' => PDS_Telegram_Client::provider_name(),
+            'needs_consent' => ! empty( $link['telegram_id'] ) && ( $link['consent_provider'] ?? 'openai' ) !== $config['ai_provider'],
         );
     }
 
@@ -53,11 +55,12 @@ final class PDS_Telegram {
         global $wpdb;
         $config = PDS_Telegram_Client::settings();
         if ( empty( $config['enabled'] ) || ! $config['bot_username'] ) { return new WP_Error( 'pds_tg_disabled', 'A integração ainda não foi ativada pelo responsável pelo portal.', array( 'status' => 400 ) ); }
-        if ( true !== $request->get_param( 'accepted' ) ) { return new WP_Error( 'pds_tg_consent', 'Confirme o envio das mensagens ao Telegram e à OpenAI para reconhecimento.', array( 'status' => 400 ) ); }
+        if ( true !== $request->get_param( 'accepted' ) ) { return new WP_Error( 'pds_tg_consent', 'Confirme o envio das mensagens ao Telegram e ao provedor de reconhecimento indicado no portal.', array( 'status' => 400 ) ); }
+        if ( $request->has_param( 'ai_provider' ) && $request->get_param( 'ai_provider' ) !== $config['ai_provider'] ) { return new WP_Error( 'pds_tg_consent', 'O provedor mudou. Atualize a página e confira o consentimento.', array( 'status' => 409 ) ); }
         $uid = get_current_user_id(); $existing = self::link( $uid );
         if ( ! empty( $existing['telegram_id'] ) ) { return new WP_Error( 'pds_tg_linked', 'Sua conta já está vinculada. Desvincule antes de trocar o Telegram.', array( 'status' => 409 ) ); }
         $token = bin2hex( random_bytes( 16 ) ); $now = current_time( 'mysql', true );
-        $data = array( 'code_hash' => hash( 'sha256', $token ), 'code_expires' => time() + 600, 'updated_at' => $now );
+        $data = array( 'code_hash' => hash( 'sha256', $token ), 'code_expires' => time() + 600, 'consent_provider' => $config['ai_provider'], 'updated_at' => $now );
         $ok = $existing ? $wpdb->update( $wpdb->prefix . 'pds_tg_links', $data, array( 'user_id' => $uid ) ) : $wpdb->insert( $wpdb->prefix . 'pds_tg_links', $data + array( 'user_id' => $uid, 'created_at' => $now ) );
         if ( false === $ok ) { return new WP_Error( 'pds_tg_storage', 'Não foi possível gerar o vínculo.', array( 'status' => 500 ) ); }
         return array( 'url' => 'https://t.me/' . $config['bot_username'] . '?start=pds_' . $token, 'code' => '/start pds_' . $token, 'expires_in' => 600 );
@@ -79,7 +82,10 @@ final class PDS_Telegram {
         $id = $request->get_param( 'default_vehicle_id' ); $confirm = $request->get_param( 'confirm_before_save' );
         if ( ! is_int( $id ) || $id < 0 || ! is_bool( $confirm ) ) { return new WP_Error( 'pds_tg_fields', 'Confira o veículo e a confirmação.', array( 'status' => 400 ) ); }
         if ( $id && ( ! pds_user_can_access_service( 'combustivel' ) || is_wp_error( PDS_Fuel::vehicle( $id ) ) ) ) { return new WP_Error( 'pds_tg_vehicle', 'Escolha um veículo disponível para sua conta.', array( 'status' => 403 ) ); }
-        $ok = $wpdb->update( $wpdb->prefix . 'pds_tg_links', array( 'default_vehicle_id' => $id, 'confirm_before_save' => (int) $confirm, 'updated_at' => current_time( 'mysql', true ) ), array( 'user_id' => get_current_user_id() ) );
+        $provider = PDS_Telegram_Client::settings()['ai_provider'];
+        if ( ( $link['consent_provider'] ?? 'openai' ) !== $provider && ( true !== $request->get_param( 'accepted' ) || $request->get_param( 'ai_provider' ) !== $provider ) ) { return new WP_Error( 'pds_tg_consent', 'Confirme o uso das mensagens pelo novo provedor de reconhecimento.', array( 'status' => 400 ) ); }
+        if ( $request->has_param( 'ai_provider' ) && $request->get_param( 'ai_provider' ) !== $provider ) { return new WP_Error( 'pds_tg_consent', 'O provedor mudou. Atualize a página e confira o consentimento.', array( 'status' => 409 ) ); }
+        $ok = $wpdb->update( $wpdb->prefix . 'pds_tg_links', array( 'default_vehicle_id' => $id, 'confirm_before_save' => (int) $confirm, 'consent_provider' => $provider, 'updated_at' => current_time( 'mysql', true ) ), array( 'user_id' => get_current_user_id() ) );
         return false === $ok ? new WP_Error( 'pds_tg_storage', 'Não foi possível salvar.', array( 'status' => 500 ) ) : array( 'success' => true );
     }
 

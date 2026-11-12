@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,10 +43,16 @@ editar credenciais de banco: o plugin usa a conexão do próprio WordPress.
 
 == Telegram ==
 
-Configure o token do bot e a chave da OpenAI em Portal de Serviços > Telegram.
+Configure o token do bot e selecione Gemini (Google) ou OpenAI em Portal de Serviços > Telegram.
+Gemini pode usar a faixa gratuita da API, sujeita ao modelo e às cotas do projeto.
+Crie a chave no Google AI Studio e mantenha o projeto no nível gratuito, sem ativar
+faturamento. Na faixa gratuita, o Google pode usar o conteúdo para melhorar seus
+produtos. A alternativa OpenAI usa créditos próprios da API.
 Ative a conexão em um WordPress com HTTPS. Cada pessoa vincula o próprio Telegram
 em Minha conta e escolhe veículo padrão e confirmação. O reconhecimento usa a
 chave central da API configurada. Configure o cron da hospedagem para a fila.
+Use Testar reconhecimento para conferir a chave e o modelo. Ao trocar o provedor,
+os usuários confirmam o novo uso em Minha conta, mantendo seu vínculo e veículo.
 Veja docs/TELEGRAM.md. A integração fica desativada até essa configuração.
 
 == Shortcodes ==
@@ -126,6 +132,13 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.3.0 =
+* Gemini (Google) para áudio e texto em uma solicitação, com opção de faixa gratuita.
+* Seleção do provedor e chave protegida no painel, sem exigir chave da OpenAI.
+* Troca de provedor mantendo vínculos, veículos e usuários, com renovação do consentimento.
+* Teste de reconhecimento e diagnóstico seguro de chave, cota, modelo, permissão e rede.
+* Nenhuma troca automática de provedor quando a cota gratuita é atingida.
 
 = 1.2.0 =
 * Telegram com vínculo seguro à conta WordPress e veículo padrão por usuário.
