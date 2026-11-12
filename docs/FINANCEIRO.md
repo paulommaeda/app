@@ -169,3 +169,18 @@ Os dados pertencem ao usuário WordPress e entram na exportação/apagamento das
 ferramentas de privacidade. Desinstalar preserva tabelas para reinstalação.
 Não há conexão bancária automática, transferência entre contas, investimentos,
 pagamentos bancários ou cobrança de assinaturas do portal nesta versão.
+
+## Recebimentos por voz e texto (1.6.0)
+
+No mesmo bot, envie **“Recebi 100 reais na conta C6 pessoa jurídica.”** A conta
+precisa existir em **Contas**. O bot identifica o valor e a conta de destino,
+registra como **Recebido** e atualiza o saldo e o fluxo de caixa. A preferência
+de confirmação já configurada continua valendo, sem refazer o vínculo.
+
+Sem origem explícita, a descrição é **Recebimento**. Conta/valor ausentes ou
+incertos geram perguntas; responda só o complemento. PF/PJ são reconhecidos e
+nomes ambíguos pedem escolha. `/contas` lista as contas ativas; `/recebimentos`
+mostra ajuda. Os dados seguem as mesmas regras de propriedade, datas e valores
+do cadastro manual. A lista indica a origem Telegram, e edições/exclusões pelo
+portal recalculam o saldo normalmente. Previsões continuam em **A receber**
+pelo portal. Veja [TELEGRAM.md](TELEGRAM.md).

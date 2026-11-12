@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,7 +27,8 @@ catálogo de serviços, Meu Combustível e Meu Financeiro.
 * Exportação/apagamento pelas ferramentas de privacidade do WordPress.
 * Sem JavaScript de CDN ou banco separado; atualizações consultadas no GitHub.
 * Importação do banco antigo por SQL/JSON ou leitura das tabelas existentes.
-* Telegram com vínculo individual, voz/texto, registro automático e confirmação opcional.
+* Telegram com vínculo individual, voz/texto, gastos, recebimentos e abastecimentos.
+* Recebimentos identificam conta de destino, atualizam saldo e respeitam confirmação.
 * Gastos, contas, recebimentos, cartões, faturas e dashboard privados por usuário.
 * Abastecimentos novos geram gastos automaticamente para quem registrou.
 * Crédito à vista ou em até 120 parcelas, distribuídas por fechamento/vencimento.
@@ -64,6 +65,8 @@ Veja docs/TELEGRAM.md. A integração fica desativada até essa configuração.
 
 Abra Meu Financeiro no catálogo do portal. Registre descrição, valor, data e categoria
 pelo front-end ou pelo mesmo bot: gastei 35 reais no almoço hoje, no Pix.
+Para entradas, diga: recebi 100 reais na conta C6 pessoa jurídica. Cadastre a
+conta no portal primeiro. /contas lista suas contas e /recebimentos mostra ajuda.
 Categorias podem ser criadas, renomeadas, coloridas, arquivadas e reativadas.
 O dashboard mostra totais, evolução, pagamentos e distribuição por categoria com
 os mesmos filtros do histórico e da exportação CSV. Os dados pertencem à conta
@@ -151,6 +154,13 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.6.0 =
+* Recebimentos por texto e áudio no mesmo Telegram, usando as contas WordPress existentes.
+* Identificação da conta de destino, incluindo pessoa física/PF e pessoa jurídica/PJ.
+* Complementos para valor/conta incertos, confirmação opcional e comandos /contas e /recebimentos.
+* Saldo e fluxo de caixa atualizados sem criar despesas nem duplicar mensagens recebidas.
+* Origem Telegram visível nos recebimentos, pendências privadas e limpeza/apagamento integrados.
 
 = 1.5.0 =
 * Meu Financeiro amplia Meus Gastos, preservando contas WordPress e dados existentes.

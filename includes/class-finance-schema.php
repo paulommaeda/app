@@ -25,11 +25,14 @@ final class PDS_Finance_Schema {
             received_on date NOT NULL,
             status varchar(12) NOT NULL DEFAULT 'received',
             notes varchar(500) NOT NULL DEFAULT '',
+            source varchar(16) NOT NULL DEFAULT 'manual',
+            external_ref varchar(96) DEFAULT NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
             KEY user_date (user_id,received_on),
-            KEY account_id (account_id)
+            KEY account_id (account_id),
+            UNIQUE KEY external_ref (external_ref)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_cards (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,

@@ -18,6 +18,21 @@ final class PDS_Telegram_Finance {
         foreach ( $rows as $row ) { if ( (int) $row['id'] === (int) $old ) { return (int) $old; } }
         return $implicit && ! $old && count( $rows ) === 1 ? $rows[0]['id'] : 0;
     }
+    /** Account names only: PF/PJ aliases are normalized, never treated as database IDs. */
+    public static function account_id( $hint, $previous = 0 ) {
+        $normalize = static function ( $value ) {
+            $value = strtolower( remove_accents( $value ) );
+            $value = preg_replace( '/pessoa\s+juridica/u', 'pj', $value );
+            $value = preg_replace( '/pessoa\s+fisica/u', 'pf', $value );
+            $value = preg_replace( '/^conta(?:\s+corrente)?\s+/u', '', trim( $value ) );
+            return PDS_Finance_Import::normalized( $value );
+        };
+        $rows = array_filter( PDS_Finance::accounts()['accounts'], static fn( $a ) => $a['active'] );
+        if ( ! is_string( $hint ) || ! trim( $hint ) ) { foreach ( $rows as $row ) { if ( (int) $row['id'] === (int) $previous ) { return (int) $previous; } } return 0; }
+        $key = $normalize( $hint ); $exact = array(); $partial = array();
+        foreach ( $rows as $row ) { $name = $normalize( $row['name'] ); if ( $key !== '' && $name === $key ) { $exact[] = $row['id']; } elseif ( strlen( $key ) >= 2 && strpos( $name, $key ) !== false ) { $partial[] = $row['id']; } }
+        return count( $exact ) === 1 ? (int) $exact[0] : ( ! $exact && count( $partial ) === 1 ? (int) $partial[0] : 0 );
+    }
     public static function resolve( $data ) {
         $missing = array(); $method = $data['payment_method'] ?? ''; $data['payment_method'] = $method ?: ''; $data['card_id'] = (int) ( $data['card_id'] ?? 0 ); $data['account_id'] = (int) ( $data['account_id'] ?? 0 );
         if ( ! pds_user_can_access_service( 'gastos' ) ) { return array( $data, $method || ! empty( $data['card_hint'] ) || ! empty( $data['account_hint'] ) ? array( 'acesso ao serviço Meu Financeiro para informar conta/cartão; consulte o portal' ) : array() ); }
@@ -30,7 +45,7 @@ final class PDS_Telegram_Finance {
         } else {
             $data['card_id'] = 0; $data['installments'] = 1;
             if ( ! empty( $data['card_hint'] ) && ! $method ) { $missing[] = 'se o pagamento foi no crédito ou no débito'; }
-            if ( ! empty( $data['account_hint'] ) ) { $data['account_id'] = self::choose( PDS_Finance::accounts()['accounts'], $data['account_hint'], $data['account_id'] ); if ( ! $data['account_id'] ) { $missing[] = 'o nome exato de uma conta ativa cadastrada no portal para a saída do dinheiro'; } }
+            if ( ! empty( $data['account_hint'] ) ) { $data['account_id'] = self::account_id( $data['account_hint'], $data['account_id'] ); if ( ! $data['account_id'] ) { $missing[] = 'o nome exato de uma conta ativa cadastrada no portal para a saída do dinheiro'; } }
         }
         return array( $data, $missing );
     }

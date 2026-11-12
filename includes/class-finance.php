@@ -93,16 +93,28 @@ final class PDS_Finance {
     public static function receipts( WP_REST_Request $r ) {
         global $wpdb; $from = $r->get_param( 'from' ) ?? current_time( 'Y-01-01' ); $to = $r->get_param( 'to' ) ?? current_time( 'Y-12-31' ); if ( ! PDS_Expenses::valid_date( $from ) || ! PDS_Expenses::valid_date( $to ) || $from > $to ) { return self::error( 'Confira o período dos recebimentos.' ); }
         $rows = $wpdb->get_results( $wpdb->prepare( "SELECT r.*,a.name AS account_name FROM {$wpdb->prefix}pds_fin_receipts r INNER JOIN {$wpdb->prefix}pds_fin_accounts a ON a.id=r.account_id AND a.user_id=r.user_id WHERE r.user_id=%d AND r.received_on BETWEEN %s AND %s ORDER BY r.received_on DESC,r.id DESC LIMIT 1000", get_current_user_id(), $from, $to ), ARRAY_A );
-        foreach ( $rows as &$row ) { $row['id'] = (int) $row['id']; $row['account_id'] = (int) $row['account_id']; $row['amount'] = (float) $row['amount']; unset( $row['user_id'] ); } unset( $row ); return array( 'receipts' => $rows );
+        foreach ( $rows as &$row ) { $row['id'] = (int) $row['id']; $row['account_id'] = (int) $row['account_id']; $row['amount'] = (float) $row['amount']; unset( $row['user_id'], $row['external_ref'] ); } unset( $row ); return array( 'receipts' => $rows );
     }
-    public static function save_receipt( WP_REST_Request $r ) {
-        global $wpdb; $id = self::id( $r ); $old = $id ? self::find( 'receipts', $id ) : array(); if ( is_wp_error( $old ) ) { return $old; }
+    public static function save_receipt( WP_REST_Request $r, $external_ref = null ) {
+        $allowed = PDS_Expenses::permission(); if ( is_wp_error( $allowed ) ) { return $allowed; }
+        global $wpdb; $uid = get_current_user_id();
+        if ( null !== $external_ref ) {
+            if ( ! is_string( $external_ref ) || ! preg_match( '/^telegram-receipt:[a-f0-9]{64}$/D', $external_ref ) ) { return self::error( 'Origem de recebimento inválida.' ); }
+            $existing = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_receipts WHERE user_id=%d AND external_ref=%s", $uid, $external_ref ) ); if ( $existing ) { return array( 'id' => (int) $existing, 'already_saved' => true ); }
+        }
+        $id = self::id( $r ); $old = $id ? self::find( 'receipts', $id ) : array(); if ( is_wp_error( $old ) ) { return $old; }
         $description = self::text( $r, 'description', 180, true ); $notes = self::text( $r, 'notes', 500 ); $amount = PDS_Expenses::amount( $r->get_param( 'amount' ) ); foreach ( array( $description, $notes, $amount ) as $v ) { if ( is_wp_error( $v ) ) { return $v; } }
-        $account_id = $r->get_param( 'account_id' ); if ( ! is_scalar( $account_id ) ) { return self::error( 'Escolha uma conta.' ); } $account = self::find( 'accounts', absint( $account_id ) ); if ( is_wp_error( $account ) ) { return $account; }
+        $account_id = $r->get_param( 'account_id' ); if ( ( ! is_int( $account_id ) && ! is_string( $account_id ) ) || ! preg_match( '/^[1-9][0-9]{0,17}$/D', (string) $account_id ) ) { return self::error( 'Escolha uma conta.' ); } $account = self::find( 'accounts', absint( $account_id ) ); if ( is_wp_error( $account ) ) { return $account; }
         if ( ! $account['active'] && ( ! $id || (int) $old['account_id'] !== (int) $account_id ) ) { return self::error( 'Escolha uma conta ativa.' ); }
         $date = $r->get_param( 'received_on' ); $status = $r->get_param( 'status' ) ?? 'received'; if ( ! PDS_Expenses::valid_date( $date ) || ! in_array( $status, array( 'received', 'pending' ), true ) || ( 'received' === $status && $date > current_time( 'Y-m-d' ) ) ) { return self::error( 'Recebimentos futuros devem ficar como A receber. Confira a data.' ); }
         $data = array( 'account_id' => (int) $account_id, 'description' => $description, 'notes' => $notes, 'amount' => $amount, 'received_on' => $date, 'status' => $status, 'updated_at' => current_time( 'mysql', true ) );
-        $ok = $id ? $wpdb->update( $wpdb->prefix . 'pds_fin_receipts', $data, array( 'id' => $id, 'user_id' => get_current_user_id() ) ) : $wpdb->insert( $wpdb->prefix . 'pds_fin_receipts', $data + array( 'user_id' => get_current_user_id(), 'created_at' => current_time( 'mysql', true ) ) ); return false === $ok ? self::error( 'Não foi possível salvar o recebimento.', 500 ) : array( 'id' => $id ?: (int) $wpdb->insert_id );
+        $wpdb->query( 'START TRANSACTION' );
+        $locked = $wpdb->get_row( $wpdb->prepare( "SELECT id,active FROM {$wpdb->prefix}pds_fin_accounts WHERE id=%d AND user_id=%d FOR UPDATE", $account_id, $uid ), ARRAY_A );
+        if ( ! $locked || ( ! $locked['active'] && ( ! $id || (int) $old['account_id'] !== (int) $account_id ) ) ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'A conta mudou. Escolha uma conta ativa e tente novamente.' ); }
+        $ok = $id ? $wpdb->update( $wpdb->prefix . 'pds_fin_receipts', $data, array( 'id' => $id, 'user_id' => $uid ) ) : $wpdb->insert( $wpdb->prefix . 'pds_fin_receipts', $data + array( 'user_id' => $uid, 'created_at' => current_time( 'mysql', true ), 'source' => $external_ref ? 'telegram' : 'manual', 'external_ref' => $external_ref ) );
+        $saved = $id ?: (int) $wpdb->insert_id;
+        if ( false === $ok ) { $wpdb->query( 'ROLLBACK' ); if ( $external_ref ) { $duplicate = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_receipts WHERE user_id=%d AND external_ref=%s", $uid, $external_ref ) ); if ( $duplicate ) { return array( 'id' => (int) $duplicate, 'already_saved' => true ); } } return self::error( 'Não foi possível salvar o recebimento.', 500 ); }
+        $wpdb->query( 'COMMIT' ); return array( 'id' => $saved );
     }
     public static function delete_receipt( WP_REST_Request $r ) { global $wpdb; $row = self::find( 'receipts', self::id( $r ) ); if ( is_wp_error( $row ) ) { return $row; } return false === $wpdb->delete( $wpdb->prefix . 'pds_fin_receipts', array( 'id' => $row['id'], 'user_id' => get_current_user_id() ) ) ? self::error( 'Não foi possível excluir.', 500 ) : array( 'success' => true ); }
     public static function plan( $card, $date, $cents, $count, $first = '', $start = 1 ) {

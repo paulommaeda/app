@@ -1,6 +1,6 @@
-# Telegram: abastecimentos e gastos pessoais por áudio e texto
+# Telegram: abastecimentos, gastos e recebimentos por áudio e texto
 
-Disponível a partir da versão 1.2.0, com Gemini na versão 1.3.0 e gastos pessoais na 1.4.0. A integração fica
+Disponível a partir da versão 1.2.0, com Gemini na versão 1.3.0 gastos pessoais na 1.4.0 e recebimentos na 1.6.0. A integração fica
 desativada até o responsável
 pelo portal configurar as credenciais e ativar a conexão. Cada pessoa vincula seu
 próprio Telegram à conta WordPress; não existe vínculo por nome, telefone ou e-mail
@@ -210,7 +210,7 @@ Um reconhecimento válido ou teste bem-sucedido remove o diagnóstico resolvido.
 * **Modelo indisponível:** selecione um modelo de áudio/JSON disponível no projeto.
 * **Rede:** verifique conexões HTTPS de saída, certificados e firewall da hospedagem.
 * **Formato recusado/resposta incompleta:** confira o modelo e teste uma descrição
-  curta de um único abastecimento; nenhuma resposta parcial é gravada.
+  curta de um único lançamento; nenhuma resposta parcial é gravada.
 
 ## Verificação antes de uso real
 
@@ -230,3 +230,41 @@ Referências de implementação:
 - [Gemini: saída estruturada](https://ai.google.dev/gemini-api/docs/structured-output)
 - [Gemini: preços e condições](https://ai.google.dev/gemini-api/docs/pricing)
 - [Gemini: criar chave](https://aistudio.google.com/apikey)
+
+## Recebimentos (1.6.0)
+
+O mesmo bot registra entradas já recebidas. Primeiro cadastre a conta de destino
+em **Meu Financeiro → Contas**; não é necessário vincular o Telegram novamente.
+
+> Recebi 100 reais na conta C6 pessoa jurídica.
+
+> Ontem recebi 250 reais por um serviço na conta C6 PJ.
+
+O valor é creditado na conta da própria pessoa e aparece em **Recebimentos**,
+no saldo e no fluxo de caixa. O dia sem data explícita é o da mensagem, no fuso
+do WordPress. Uma origem não informada usa a descrição neutra **Recebimento**;
+o usuário pode editá-la no portal. O saldo respeita a data inicial da conta.
+
+**Pessoa jurídica/PJ** e **pessoa física/PF** são equivalentes para identificação
+do nome. Com nomes parecidos, valor ausente ou dados incertos, o bot pergunta e
+aceita o complemento por texto ou áudio. Não cria contas nem usa contas de outra
+pessoa. Dê nomes distintos a contas diferentes para poder identificá-las.
+
+| Comando | Uso |
+| --- | --- |
+| `/contas` | Lista nomes das contas ativas da própria conta WordPress, sem saldos ou números bancários |
+| `/recebimentos` | Ajuda para entradas de dinheiro |
+| `/recebimento texto` | Direciona explicitamente uma mensagem para recebimento |
+| `/confirmar` ou `/salvar` | Confirma o recebimento completo pendente |
+| `/cancelar` ou `/novo` | Descarta a pendência antes de começar outro lançamento |
+
+A preferência individual e a exigência global de confirmação também valem para
+recebimentos. Botões e pendências têm identidade própria; reenvios da mesma
+mensagem e da notificação não duplicam entradas. O financeiro deve estar liberado
+para a conta. Pendências expiram em duas horas e são removidas ao desvincular
+o bot ou apagar os dados pelas ferramentas de privacidade do WordPress.
+
+Envie um lançamento por mensagem. Transferências entre contas próprias, estornos
+de cartão e promessas de pagamento não são registrados como novas receitas.
+Para previsões, use **A receber** no portal. O bot registra o que você informou;
+não realiza transferência nem consulta seu banco.

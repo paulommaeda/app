@@ -71,6 +71,7 @@ final class PDS_Telegram {
         $wpdb->delete( $wpdb->prefix . 'pds_tg_links', array( 'user_id' => $uid ) );
         $wpdb->delete( $wpdb->prefix . 'pds_tg_drafts', array( 'user_id' => $uid ) );
         $wpdb->delete( $wpdb->prefix . 'pds_tg_expense_drafts', array( 'user_id' => $uid ) );
+        $wpdb->delete( $wpdb->prefix . 'pds_tg_receipt_drafts', array( 'user_id' => $uid ) );
         $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}pds_tg_updates SET status='done', payload=NULL, response=NULL, error_code='unlinked' WHERE user_id=%d AND status IN ('pending','notify')", $uid ) );
     }
 
@@ -166,7 +167,7 @@ final class PDS_Telegram {
         $ok = $wpdb->update( $wpdb->prefix . 'pds_tg_links', array( 'telegram_id' => $telegram, 'chat_id' => $chat, 'code_hash' => null, 'code_expires' => 0, 'updated_at' => current_time( 'mysql', true ) ), array( 'user_id' => $link['user_id'] ) );
         if ( ! $ok ) { $wpdb->query( 'ROLLBACK' ); return self::reply( 'Não foi possível concluir o vínculo. Gere outro código no portal.' ); }
         $wpdb->query( 'COMMIT' );
-        return self::reply( "Telegram vinculado à sua conta do portal!\nVocê pode registrar gastos pessoais e abastecimentos.\nExemplo: gastei 35 reais no almoço hoje, no Pix.\nPara combustível, informe veículo, combustível, litros, preço, valor pago, quilometragem e se completou o tanque.\nUse /veiculos para escolher um veículo padrão ou /ajuda para ver um exemplo." );
+        return self::reply( "Telegram vinculado à sua conta do portal!\nVocê pode registrar gastos, recebimentos e abastecimentos.\nExemplos: gastei 35 reais no almoço hoje, no Pix; recebi 100 reais na conta C6 pessoa jurídica.\nPara combustível, informe veículo, combustível, litros, preço, valor pago, quilometragem e se completou o tanque.\nUse /veiculos para escolher um veículo padrão ou /ajuda para ver um exemplo." );
     }
 
     public static function reply( $text, $markup = null ) { $reply = array( 'text' => mb_substr( $text, 0, 4000 ) ); if ( $markup ) { $reply['reply_markup'] = $markup; } return $reply; }
@@ -235,8 +236,8 @@ final class PDS_Telegram {
         if ( get_user_meta( $link['user_id'], 'pds_suspended', true ) ) { return self::reply( 'O acesso desta conta ao portal está suspenso. Consulte o responsável pelo portal.' ); }
         wp_set_current_user( $link['user_id'] );
         $wpdb->update( $wpdb->prefix . 'pds_tg_updates', array( 'user_id' => (int) $link['user_id'] ), array( 'id' => $job['id'] ) );
-        if ( in_array( $text, array( '/start', '/ajuda', '/help' ), true ) ) { return self::reply( "Gasto pessoal: gastei 35 reais no almoço hoje, no Pix.\n\nAbastecimento: Hoje abasteci o HB20 com gasolina, 30 litros a R$ 6,20. Paguei R$ 180, odômetro 45.200 e completei o tanque.\n\n/gastos — ajuda para gastos pessoais\n/categorias — categorias de gastos\n/veiculos — listar veículos\n/veiculo ID — definir o padrão\n/confirmar — salvar resumo pendente\n/cancelar — descartar pendência\n/desvincular — remover o vínculo" ); }
-        if ( (int) $job['record_id'] > 0 ) { return 'gastos' === ( $job['record_service'] ?? 'combustivel' ) ? PDS_Telegram_Expenses::saved_reply( (int) $job['record_id'] ) : PDS_Telegram_Fuel::saved_reply( (int) $job['record_id'] ); }
+        if ( in_array( $text, array( '/start', '/ajuda', '/help' ), true ) ) { return self::reply( "Gasto pessoal: gastei 35 reais no almoço hoje, no Pix.\n\nRecebimento: recebi 100 reais na conta C6 pessoa jurídica.\n\nAbastecimento: Hoje abasteci o HB20 com gasolina, 30 litros a R$ 6,20. Paguei R$ 180, odômetro 45.200 e completei o tanque.\n\n/gastos — ajuda para gastos pessoais\n/recebimentos — ajuda para recebimentos\n/contas — listar contas financeiras\n/categorias — categorias de gastos\n/veiculos — listar veículos\n/veiculo ID — definir o padrão\n/confirmar — salvar resumo pendente\n/cancelar — descartar pendência\n/desvincular — remover o vínculo" ); }
+        if ( (int) $job['record_id'] > 0 ) { $classes = array( 'gastos' => 'PDS_Telegram_Expenses', 'recebimentos' => 'PDS_Telegram_Receipts', 'combustivel' => 'PDS_Telegram_Fuel' ); $class = $classes[ $job['record_service'] ?? 'combustivel' ] ?? null; return $class ? $class::saved_reply( (int) $job['record_id'] ) : self::reply( 'Esta mensagem já foi processada. Confira seu histórico no portal.' ); }
         /** Future modules must enforce their own service and record permissions. */
         $custom = apply_filters( 'pds_telegram_reply', null, $payload, $link );
         if ( is_array( $custom ) ) { return $custom; }
@@ -247,6 +248,7 @@ final class PDS_Telegram {
         global $wpdb;
         $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}pds_tg_drafts WHERE expires_at<%d", time() ) );
         $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}pds_tg_expense_drafts WHERE expires_at<%d", time() ) );
+        $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}pds_tg_receipt_drafts WHERE expires_at<%d", time() ) );
         $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}pds_tg_links SET code_hash=NULL, code_expires=0 WHERE code_expires>0 AND code_expires<%d", time() ) );
         $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}pds_tg_updates SET payload=NULL,response=NULL,status='error',error_code='expired' WHERE status<>'done' AND created_at<%s", gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) ) );
         $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}pds_tg_updates WHERE created_at<%s", gmdate( 'Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS ) ) );

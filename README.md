@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.5.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.6.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.5.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.6.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -121,3 +121,16 @@ Gemini configurado, com autorização na tela e revisão dos dados extraídos.
 
 Veja [FINANCEIRO.md](docs/FINANCEIRO.md) para implantação, regras de fechamento,
 formato de importação, parcelas projetadas e limites.
+
+## Recebimentos pelo Telegram (1.6.0)
+
+Diga ou envie por áudio: **“Recebi 100 reais na conta C6 pessoa jurídica.”**
+A conta de destino deve estar cadastrada em **Meu Financeiro → Contas**. O bot
+registra a entrada, atualiza o saldo e o fluxo de caixa e mostra o resumo. Usa
+o mesmo vínculo, provedor e preferência de confirmação já configurados.
+
+`/contas` lista suas contas ativas; `/recebimentos` mostra ajuda. Se valor, data
+ou conta estiverem incertos, o bot pergunta e aceita só o complemento. PF/PJ
+são reconhecidos; nomes ambíguos nunca escolhem uma conta automaticamente.
+Sem origem mencionada, a descrição é **Recebimento**. Previsões de entrada
+continuam disponíveis no portal como **A receber**.

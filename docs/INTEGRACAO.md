@@ -227,3 +227,23 @@ Campos de crédito no objeto IA `expense`: `card_hint`, `account_hint`,
 `installment_mode` e `installments`. O servidor resolve nomes contra recursos
 do próprio usuário; nunca aceita IDs fornecidos pela IA. Em `intent=fuel`, o
 objeto opcional informa apenas o pagamento do mesmo abastecimento.
+
+## Recebimentos no Telegram (1.6.0)
+
+O reconhecimento inclui `intent=receipt` e o objeto nullable `receipt`, com
+`description`, `amount`, `received_on`, `account_hint`, `notes` e `uncertain_fields`.
+O roteador distingue pendência de entrada, despesa e abastecimento, mesmo quando
+as duas primeiras ações usam a permissão do serviço `gastos`. IDs internos de
+contas não são aceitos da IA nem enviados no contexto da pendência.
+
+`pds_fin_receipts.source` indica manual/telegram. O `external_ref` único é
+controlado pelo servidor e impede duplicar a mesma origem Telegram. A API REST
+ignora origem/identificador fornecidos pelo cliente e oculta esses identificadores
+internos nas consultas. `PDS_Finance::save_receipt()` mantém validação, propriedade
+e transação comuns. `pds_tg_updates.record_service=recebimentos` identifica a
+resposta já salva para retomada da fila sem confundir IDs de outros módulos.
+
+Pendências em `pds_tg_receipt_drafts` pertencem ao usuário e Telegram vinculados,
+expiram em duas horas e participam da limpeza diária, desvinculação e apagamento
+de privacidade. As colunas novas preservam os recebimentos existentes com
+origem manual por padrão. O modelo e as chaves da IA não mudam na atualização.

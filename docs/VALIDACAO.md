@@ -130,3 +130,19 @@ As respostas de Telegram e Gemini são controladas nos testes. O upload PDF é
 exercitado pelo navegador, mas o reconhecimento de documentos bancários reais e
 o áudio real dependem da chave/modelo/cota da hospedagem. Não houve envio de
 faturas ou mensagens reais aos provedores durante os testes locais.
+
+## Recebimentos no Telegram — 1.6.0
+
+* 56 verificações de integração da entrada por texto/áudio, incluindo o exemplo “recebi 100 reais na conta C6 pessoa jurídica”, descrição neutra e centavos exatos.
+* Distinção entre contas C6 PF/PJ, aliases pessoa física/jurídica, nomes ambíguos, conta ausente, contas de outro usuário, contas arquivadas e valor/data incertos.
+* Complemento de mensagens, data da mensagem no fuso do WordPress, data explícita, rejeição de valores inválidos/futuros e de múltiplos lançamentos misturados.
+* Preferência de confirmação individual/global, confirmação textual e por botão, correção de resumo, token antigo/forjado, cancelamento e identidade Telegram de terceiros.
+* Idempotência do webhook, origem única do recebimento e retomada da fila/notificação sem duplicar crédito, despesa ou reconhecimento.
+* API nativa ignora origem/identidade fornecidas pelo cliente; leitura oculta referências internas; outro usuário não edita/apaga os dados pessoais.
+* Bloqueio de serviço e conta arquivada durante reconhecimento, desvinculação, expiração, exportação/apagamento de privacidade e suporte ao esquema na alternativa OpenAI.
+* 16 verificações pelo navegador, com webhook HTTP real e respostas externas simuladas: saldo, fluxo de caixa, histórico, voz, complementos, repetição, confirmação e cancelamento.
+* Interface mobile sem transbordamento e sem erros JavaScript; usuário WordPress diferente não altera o recebimento, inclusive se for administrador.
+
+Gemini, OpenAI e Telegram usam respostas controladas nos testes; não foram
+utilizados credenciais, recebimentos ou áudios reais de produção. A atualização
+mantém o modelo, as chaves, os vínculos, as preferências e os dados existentes.
