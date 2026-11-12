@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 O primeiro serviço controla veículos, abastecimentos, gastos, consumo e descontos.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.1.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.2.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.1.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.2.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -52,6 +52,17 @@ Para publicar uma versão nova:
 
 O script não contém tokens ou credenciais. A atualização não depende da API
 autenticada do GitHub nem de serviços de assinatura pagos.
+
+## Telegram por áudio e texto
+
+Configure o bot e a chave da OpenAI em **Portal de Serviços → Telegram** e ative
+a conexão. Cada usuário faz o vínculo em **Minha conta → Telegram**, escolhe um
+veículo padrão e envia áudio ou texto. Dados completos são salvos automaticamente;
+dados ausentes geram perguntas. A confirmação antes de salvar é opcional.
+
+O WordPress precisa usar HTTPS e ter o agendamento funcionando. A integração
+fica desativada até configurar as chaves no site; nenhuma credencial acompanha
+o código. Consulte [o manual do Telegram](docs/TELEGRAM.md).
 
 ## Próximos serviços
 

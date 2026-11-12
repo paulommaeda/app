@@ -1,12 +1,13 @@
-# Validação da versão 1.1.0
+# Validação da versão 1.2.0
 
-Validação local em 11 de novembro de 2026 com WordPress 7.1.4, PHP 8.4.24,
+Validação local em 12 de novembro de 2026 com WordPress 7.1.4, PHP 8.4.24,
 MariaDB 11.8.6 e Chromium Headless 150.
 
-Foram aprovadas **178 verificações**: 71 de integração do app, 57 de importação
-e metadados de atualização, 28 de navegação do app, oito de importação pela tela
-administrativa, seis com links permanentes padrão e oito de atualização nativa
-do WordPress com instalação real do pacote ZIP.
+Foram aprovadas **275 verificações**: 71 de integração do app, 57 de importação
+e metadados de atualização, 81 de integração com o Telegram, 28 de navegação do
+app, oito de importação pela tela administrativa, 16 do Telegram pela interface,
+seis com links permanentes padrão e oito de atualização nativa do WordPress
+com instalação real do pacote ZIP.
 Os arquivos PHP passaram pela verificação de sintaxe e o JavaScript passou
 por `node --check`.
 
@@ -54,4 +55,23 @@ bibliotecas de desenvolvimento ou capturas de tela no pacote de instalação.
 * Migração do índice da versão 1.0, preservando os abastecimentos existentes.
 * Atualização reconhecida no mecanismo nativo do WordPress; mesma versão não oferecida novamente.
 * Download com integridade SHA-256, incluindo rejeição de arquivo corrompido.
-* Instalação real pelo Plugin_Upgrader no modo de atualização automática, mantendo pasta, ativação e contagens de usuários, veículos, registros e mapas.
+* Instalação real pelo Plugin_Upgrader no modo de atualização automática, mantendo pasta, ativação, usuários, veículos, registros, mapas, vínculos, fila, rascunhos e configurações do Telegram.
+
+## Telegram e reconhecimento de áudio
+
+* Configuração administrativa, proteção das credenciais armazenadas e webhook autenticado com HTTPS.
+* Vínculo de uso único à conta WordPress, consentimento, expiração e rejeição de grupos ou identidade privada inconsistente.
+* Seleção de veículo, isolamento entre usuários e bloqueio após suspensão ou revogação de acesso, inclusive durante o reconhecimento.
+* Áudio OGG multipart, transcrição em português e extração estruturada de dados; texto e áudio complementar para campos ausentes.
+* Gravação automática de dados completos, confirmação opcional e rejeição de botões de rascunhos antigos.
+* Ausência de suposições sobre veículo desconhecido, quilometragem, combustível, tanque cheio, preço e descontos.
+* Autenticação do processamento assíncrono, limites por conta e deduplicação de entregas e gravações.
+* Retentativa de notificação sem repetir reconhecimento pago ou criar outro abastecimento.
+* Exportação e apagamento de dados pessoais, desvinculação e desativação administrativa.
+* Navegação real no navegador para configurar, vincular, salvar por áudio, confirmar e desvincular; tela móvel sem transbordamento horizontal.
+
+As respostas HTTP de **Telegram e OpenAI foram simuladas** nos testes locais,
+sem usar credenciais reais ou enviar áudio a esses provedores. O teste com um
+áudio real deve ser feito no site HTTPS após cadastrar as credenciais e ativar
+a conexão, conforme `TELEGRAM.md`. Os testes de banco, WordPress, navegação e
+instalação do ZIP usam os componentes reais do ambiente de validação.

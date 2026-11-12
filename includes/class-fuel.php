@@ -228,8 +228,9 @@ final class PDS_Fuel {
         return $row ? self::cast_record( $row ) : self::error( 'Abastecimento não encontrado.', 404 );
     }
 
-    public static function save_record( WP_REST_Request $request ) {
+    public static function save_record( WP_REST_Request $request, $external_ref = null ) {
         global $wpdb;
+        if ( null !== $external_ref && ( ! is_string( $external_ref ) || ! preg_match( '/^telegram:[a-f0-9]{64}$/D', $external_ref ) ) ) { return self::error( 'Origem de lançamento inválida.' ); }
         $record_id = absint( $request['record_id'] ); $old = null;
         if ( $record_id ) {
             $old = self::existing_record( $record_id );
@@ -258,6 +259,14 @@ final class PDS_Fuel {
         if ( ! $locked ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Veículo indisponível.', 404 ); }
         $vehicle = self::vehicle( $vehicle['id'] );
         if ( is_wp_error( $vehicle ) ) { $wpdb->query( 'ROLLBACK' ); return $vehicle; }
+        if ( ! $record_id && $external_ref ) {
+            $existing = $wpdb->get_row( $wpdb->prepare( "SELECT id, vehicle_id, created_by FROM {$wpdb->prefix}pds_fuel_records WHERE external_ref = %s", $external_ref ), ARRAY_A );
+            if ( $existing ) {
+                $wpdb->query( 'ROLLBACK' );
+                return (int) $existing['vehicle_id'] === $vehicle['id'] && (int) $existing['created_by'] === get_current_user_id() ? array( 'success' => true, 'id' => (int) $existing['id'], 'already_saved' => true ) : self::error( 'Este lançamento já foi processado.', 409 );
+            }
+            $data['external_ref'] = $external_ref;
+        }
         if ( $record_id ) {
             $old = self::existing_record( $record_id );
             if ( is_wp_error( $old ) ) { $wpdb->query( 'ROLLBACK' ); return $old; }

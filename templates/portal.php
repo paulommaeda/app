@@ -88,6 +88,7 @@
                 <?php elseif ( 'conta' === $service ) : ?>
                     <div class="pds-page-heading"><div><span class="pds-eyebrow">SEU PERFIL</span><h1>Minha conta</h1><p>Um único cadastro para seus serviços.</p></div></div>
                     <section class="pds-card pds-account-card"><h2>Dados da conta</h2><form id="pds-account-form" class="pds-form"><label>Nome<input name="name" value="<?php echo esc_attr( $user->display_name ); ?>" maxlength="150" autocomplete="name" required></label><label>E-mail<input name="email" type="email" value="<?php echo esc_attr( $user->user_email ); ?>" maxlength="100" autocomplete="email" required></label><hr><h3>Alterar senha</h3><p class="pds-muted">Para mudar o e-mail ou a senha, informe sua senha atual.</p><label>Senha atual<input name="current_password" type="password" autocomplete="current-password" maxlength="200"></label><label>Nova senha <span class="pds-muted">(opcional)</span><input name="new_password" type="password" autocomplete="new-password" minlength="10" maxlength="200" placeholder="Pelo menos 10 caracteres"></label><div class="pds-form-error pds-alert" role="alert" hidden></div><button type="submit" class="pds-button">Salvar alterações</button></form></section>
+                    <?php do_action( 'pds_account_after' ); ?>
                 <?php elseif ( isset( $services[ $service ] ) && pds_user_can_access_service( $service ) ) : ?>
                     <?php call_user_func( $services[ $service ]['render_callback'] ); ?>
                 <?php else : ?>

@@ -78,10 +78,12 @@ final class PDS_Install {
             notes varchar(500) NOT NULL DEFAULT '',
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
+            external_ref varchar(96) DEFAULT NULL,
             PRIMARY KEY  (id),
             KEY vehicle_odometer (vehicle_id,odometer),
             KEY vehicle_date (vehicle_id,filled_on),
-            KEY created_by (created_by)
+            KEY created_by (created_by),
+            UNIQUE KEY external_ref (external_ref)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$prefix}pds_rate_limits (
             limit_key varchar(64) NOT NULL,
@@ -101,7 +103,52 @@ final class PDS_Install {
             UNIQUE KEY source_entity (source_key,entity,legacy_id),
             KEY target_entity (target_id,entity)
         ) ENGINE=InnoDB $collate;" );
-        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map' ) as $table ) {
+        dbDelta( "CREATE TABLE {$prefix}pds_tg_links (
+            user_id bigint(20) unsigned NOT NULL,
+            telegram_id varchar(24) DEFAULT NULL,
+            chat_id varchar(24) DEFAULT NULL,
+            code_hash varchar(64) DEFAULT NULL,
+            code_expires bigint(20) unsigned NOT NULL DEFAULT 0,
+            default_vehicle_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            confirm_before_save tinyint(1) NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY  (user_id),
+            UNIQUE KEY telegram_id (telegram_id),
+            UNIQUE KEY code_hash (code_hash)
+        ) ENGINE=InnoDB $collate;" );
+        dbDelta( "CREATE TABLE {$prefix}pds_tg_updates (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            event_key varchar(64) NOT NULL,
+            bot_id varchar(24) NOT NULL,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            telegram_id varchar(24) NOT NULL,
+            chat_id varchar(24) NOT NULL,
+            payload longtext,
+            response longtext,
+            status varchar(16) NOT NULL DEFAULT 'pending',
+            attempts tinyint unsigned NOT NULL DEFAULT 0,
+            record_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            error_code varchar(48) NOT NULL DEFAULT '',
+            created_at datetime NOT NULL,
+            locked_until bigint(20) unsigned NOT NULL DEFAULT 0,
+            PRIMARY KEY  (id),
+            UNIQUE KEY event_key (event_key),
+            KEY status_locked (status,locked_until),
+            KEY user_id (user_id),
+            KEY created_at (created_at)
+        ) ENGINE=InnoDB $collate;" );
+        dbDelta( "CREATE TABLE {$prefix}pds_tg_drafts (
+            user_id bigint(20) unsigned NOT NULL,
+            telegram_id varchar(24) NOT NULL,
+            source_ref varchar(64) NOT NULL,
+            token varchar(32) NOT NULL,
+            data longtext NOT NULL,
+            expires_at bigint(20) unsigned NOT NULL,
+            PRIMARY KEY  (user_id),
+            KEY expires_at (expires_at)
+        ) ENGINE=InnoDB $collate;" );
+        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts' ) as $table ) {
             $name = $prefix . $table;
             if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $name ) ) ) !== $name ) {
                 return new WP_Error( 'pds_schema', 'Não foi possível criar as tabelas do portal. Verifique as permissões do banco de dados e reative o plugin.' );
@@ -113,5 +160,7 @@ final class PDS_Install {
 
     public static function deactivate() {
         wp_clear_scheduled_hook( 'pds_cleanup_limits' );
+        wp_clear_scheduled_hook( 'pds_tg_process_queue' );
+        wp_clear_scheduled_hook( 'pds_tg_process_once' );
     }
 }

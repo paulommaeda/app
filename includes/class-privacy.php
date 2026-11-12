@@ -12,7 +12,7 @@ final class PDS_Privacy {
         add_action( 'delete_user', array( __CLASS__, 'delete_user' ) );
         add_action( 'admin_init', static function () {
             if ( function_exists( 'wp_add_privacy_policy_content' ) ) {
-                wp_add_privacy_policy_content( 'Portal de Serviços', '<p>O portal usa a conta WordPress (nome, e-mail, senha protegida e cookies de autenticação). O serviço Meu Combustível armazena veículos, placa opcional, quilometragem, abastecimentos, valores e observações. O proprietário pode compartilhar um veículo com outras contas cadastradas; os participantes passam a visualizar seus abastecimentos. Limites de tentativas usam identificadores criptográficos temporários, apagados periodicamente. Os dados do aplicativo ficam no banco deste site. A consulta de atualizações conecta o servidor ao GitHub e envia a versão do plugin, sem enviar usuários, veículos ou abastecimentos. Recuperação de senha utiliza o e-mail do WordPress. A importação administrativa vincula IDs antigos às contas WordPress; a preparação dos backups expira após uma hora sem processamento e seu conteúdo é removido ao concluir a importação. Os dados podem ser exportados e apagados pelas ferramentas de privacidade do WordPress. Excluir uma conta ou atender à sua solicitação de apagamento remove seus veículos e registros e anonimiza a autoria em veículos de terceiros. Desativar ou desinstalar o plugin preserva os dados para reinstalação.</p>' );
+                wp_add_privacy_policy_content( 'Portal de Serviços', '<p>O portal usa a conta WordPress (nome, e-mail, senha protegida e cookies de autenticação). O serviço Meu Combustível armazena veículos, placa opcional, quilometragem, abastecimentos, valores e observações. O proprietário pode compartilhar um veículo com outras contas cadastradas; os participantes passam a visualizar seus abastecimentos. Limites de tentativas usam identificadores criptográficos temporários, apagados periodicamente. Os dados do aplicativo ficam no banco deste site. A consulta de atualizações conecta o servidor ao GitHub e envia a versão do plugin, sem enviar usuários, veículos ou abastecimentos. Recuperação de senha utiliza o e-mail do WordPress. A importação administrativa vincula IDs antigos às contas WordPress; a preparação dos backups expira após uma hora sem processamento e seu conteúdo é removido ao concluir a importação. O vínculo opcional com o Telegram associa o ID da conta ao usuário WordPress. Mensagens de voz e texto são recebidas pelo Telegram e enviadas à OpenAI para transcrição/interpretação, com consentimento no vínculo. Áudios não são armazenados na mídia do site. Pendências expiram em duas horas; o conteúdo temporário de mensagens é limpo após o processamento ou pela limpeza diária. Identificadores mínimos de entrega podem permanecer por até 90 dias para evitar duplicações. O cron da hospedagem precisa funcionar para processar filas e efetuar as limpezas periódicas. Os dados podem ser exportados e apagados pelas ferramentas de privacidade do WordPress. Excluir uma conta ou atender à sua solicitação de apagamento remove seus veículos e registros e anonimiza a autoria em veículos de terceiros. Desativar ou desinstalar o plugin preserva os dados para reinstalação.</p>' );
             }
         } );
     }
@@ -27,6 +27,8 @@ final class PDS_Privacy {
             foreach ( $vehicles as $vehicle ) {
                 $data[] = array( 'group_id' => 'pds-vehicles', 'group_label' => 'Veículos do portal', 'item_id' => 'vehicle-' . $vehicle['id'], 'data' => array( array( 'name' => 'Veículo', 'value' => $vehicle['name'] ), array( 'name' => 'Placa', 'value' => $vehicle['plate'] ) ) );
             }
+            $link = PDS_Telegram::link( $user->ID );
+            if ( $link ) { $data[] = array( 'group_id' => 'pds-telegram', 'group_label' => 'Telegram do portal', 'item_id' => 'telegram-' . $user->ID, 'data' => array( array( 'name' => 'ID da conta no Telegram', 'value' => (string) $link['telegram_id'] ), array( 'name' => 'Veículo padrão (ID)', 'value' => (string) $link['default_vehicle_id'] ), array( 'name' => 'Confirmar antes de salvar', 'value' => $link['confirm_before_save'] ? 'Sim' : 'Não' ) ) ); }
         }
         $rows = $wpdb->get_results( $wpdb->prepare( "SELECT r.*, v.name AS vehicle_name FROM {$wpdb->prefix}pds_fuel_records r INNER JOIN {$wpdb->prefix}pds_vehicles v ON v.id = r.vehicle_id WHERE v.owner_user_id = %d OR r.created_by = %d ORDER BY r.id LIMIT 100 OFFSET %d", $user->ID, $user->ID, ( $page - 1 ) * 100 ), ARRAY_A );
         foreach ( $rows as $row ) {
@@ -52,6 +54,10 @@ final class PDS_Privacy {
         $query = $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_vehicles WHERE owner_user_id = %d", $id );
         if ( $limit ) { $query .= ' LIMIT ' . (int) $limit; }
         $vehicles = $wpdb->get_results( $query, ARRAY_A ); $removed = false; $failed = false;
+        foreach ( array( 'pds_tg_drafts', 'pds_tg_updates', 'pds_tg_links' ) as $table ) {
+            $deleted = $wpdb->delete( $wpdb->prefix . $table, array( 'user_id' => $id ) );
+            $failed = $failed || false === $deleted; $removed = $removed || (bool) $deleted;
+        }
         foreach ( $vehicles as $vehicle ) {
             $wpdb->query( 'START TRANSACTION' );
             $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_vehicles WHERE id = %d FOR UPDATE", $vehicle['id'] ) );

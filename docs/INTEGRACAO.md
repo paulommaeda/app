@@ -162,3 +162,15 @@ Ative individualmente no site desejado se estiver em WordPress Multisite.
 A importação dispara `pds_fuel_record_created` somente para abastecimentos novos
 no destino, após confirmar a gravação, e `pds_user_imported($user_id, $source,
 $legacy_id)` para novas contas. Repetições ignoradas não disparam esses eventos.
+
+
+## Telegram (1.2.0)
+
+O núcleo opcional de Telegram vincula o ID da conta a `wp_users.ID`. O filtro
+`pds_telegram_reply` permite acrescentar outros serviços após autenticação da
+conversa privada. Cada serviço precisa verificar sua própria permissão e
+propriedade dos dados. Veja [TELEGRAM.md](TELEGRAM.md) para o contrato e configuração.
+
+Tabelas adicionais: `pds_tg_links`, `pds_tg_updates` e `pds_tg_drafts`. Elas não
+substituem `wp_users`. `pds_fuel_records.external_ref` é uma origem interna única
+para impedir gravações duplicadas de uma mensagem; não é aceita do cliente REST.

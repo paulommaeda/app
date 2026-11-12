@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,7 @@ catálogo de serviços e o primeiro módulo: Meu Combustível.
 * Exportação/apagamento pelas ferramentas de privacidade do WordPress.
 * Sem JavaScript de CDN ou banco separado; atualizações consultadas no GitHub.
 * Importação do banco antigo por SQL/JSON ou leitura das tabelas existentes.
+* Telegram com vínculo individual, voz/texto, registro automático e confirmação opcional.
 
 == Installation ==
 
@@ -39,6 +40,14 @@ catálogo de serviços e o primeiro módulo: Meu Combustível.
 
 Use HTTPS no portal publicado. Não é necessário importar database.sql nem
 editar credenciais de banco: o plugin usa a conexão do próprio WordPress.
+
+== Telegram ==
+
+Configure o token do bot e a chave da OpenAI em Portal de Serviços > Telegram.
+Ative a conexão em um WordPress com HTTPS. Cada pessoa vincula o próprio Telegram
+em Minha conta e escolhe veículo padrão e confirmação. O reconhecimento usa a
+chave central da API configurada. Configure o cron da hospedagem para a fila.
+Veja docs/TELEGRAM.md. A integração fica desativada até essa configuração.
 
 == Shortcodes ==
 
@@ -117,6 +126,13 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.2.0 =
+* Telegram com vínculo seguro à conta WordPress e veículo padrão por usuário.
+* Registro de abastecimentos por áudio ou texto, com reconhecimento pela OpenAI.
+* Perguntas para dados ausentes, confirmação opcional e resumo do registro salvo.
+* Fila assíncrona, limites por conta e prevenção de duplicação na entrega/gravação.
+* Credenciais protegidas e configuração no painel; manual em docs/TELEGRAM.md.
 
 = 1.1.0 =
 * Atualização nativa pelo WordPress a partir do GitHub, com integridade do ZIP.

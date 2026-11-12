@@ -1,11 +1,11 @@
 {
   "name": "Portal de Serviços — Meu Combustível",
-  "version": "1.1.0",
-  "download_url": "https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.1.0.zip",
-  "sha256": "25c350e48aaf4bddfad6c4eb9827fccee08b38b9205f684a0a89714c32a1f5fe",
+  "version": "1.2.0",
+  "download_url": "https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.2.0.zip",
+  "sha256": "44eef2237695abaf4422d3f6ab6326b0539233454c563a0b4211008b9a350e2c",
   "requires": "6.6",
   "requires_php": "8.0",
   "tested": "7.1",
-  "last_updated": "2026-11-11",
-  "changelog": "<h4>1.1.0</h4><ul><li>Atualização nativa pelo WordPress a partir do GitHub, com integridade do ZIP.</li><li>Importação SQL/JSON ou do banco antigo, com contas nativas WordPress.</li><li>Preservação de senhas compatíveis, vínculos, valores e registros duplicados em KM.</li><li>Processamento retomável e idempotente, sem sobrescrever alterações do novo app.</li></ul><h4>1.0.0</h4><ul><li>Conversão completa para WordPress, portal modular e serviço Meu Combustível.</li></ul>"
+  "last_updated": "2026-11-12",
+  "changelog": "<h4>1.2.0</h4><ul><li>Telegram com vínculo seguro à conta WordPress e veículo padrão por usuário.</li><li>Registro de abastecimentos por áudio ou texto, com reconhecimento pela OpenAI.</li><li>Perguntas para dados ausentes, confirmação opcional e resumo do registro salvo.</li><li>Fila assíncrona, limites por conta e prevenção de duplicação na entrega/gravação.</li><li>Credenciais protegidas e configuração no painel; manual em docs/TELEGRAM.md.</li></ul><h4>1.1.0</h4><ul><li>Atualização nativa pelo WordPress a partir do GitHub, com integridade do ZIP.</li><li>Importação SQL/JSON ou do banco antigo, com contas nativas WordPress.</li><li>Preservação de senhas compatíveis, vínculos, valores e registros duplicados em KM.</li><li>Processamento retomável e idempotente, sem sobrescrever alterações do novo app.</li></ul><h4>1.0.0</h4><ul><li>Conversão completa para WordPress, portal modular e serviço Meu Combustível.</li></ul>"
 }
