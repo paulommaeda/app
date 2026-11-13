@@ -112,8 +112,19 @@ final class PDS_Finance {
     public static function receipts( WP_REST_Request $r ) {
         global $wpdb; $from = $r->get_param( 'from' ) ?? current_time( 'Y-01-01' ); $to = $r->get_param( 'to' ) ?? current_time( 'Y-12-31' ); if ( ! PDS_Expenses::valid_date( $from ) || ! PDS_Expenses::valid_date( $to ) || $from > $to ) { return self::error( 'Confira o período dos recebimentos.' ); }
         PDS_Finance_Planning::sync_user( get_current_user_id(), substr( $to, 0, 7 ) );
-        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT r.*,a.name AS account_name FROM {$wpdb->prefix}pds_fin_receipts r INNER JOIN {$wpdb->prefix}pds_fin_accounts a ON a.id=r.account_id AND a.user_id=r.user_id WHERE r.user_id=%d AND r.received_on BETWEEN %s AND %s ORDER BY r.received_on DESC,r.id DESC LIMIT 1000", get_current_user_id(), $from, $to ), ARRAY_A );
-        foreach ( $rows as &$row ) { $row['id'] = (int) $row['id']; $row['account_id'] = (int) $row['account_id']; $row['recurring_id'] = $row['recurring_id'] ? (int) $row['recurring_id'] : null; $row['amount'] = (float) $row['amount']; unset( $row['user_id'], $row['external_ref'] ); } unset( $row ); return array( 'receipts' => $rows );
+        $where = $wpdb->prepare( 'r.user_id=%d AND r.received_on BETWEEN %s AND %s', get_current_user_id(), $from, $to );
+        $person = $r->get_param( 'person_id' );
+        if ( null !== $person && '' !== $person ) {
+            if ( ( ! is_int( $person ) && ! is_string( $person ) ) || ! preg_match( '/^[1-9][0-9]{0,17}$/D', (string) $person ) ) { return self::error( 'Pessoa inválida.' ); }
+            $allowed = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_people WHERE id=%d AND user_id=%d", $person, get_current_user_id() ) ); if ( ! $allowed ) { return self::error( 'Pessoa não encontrada ou sem acesso.', 404 ); }
+            $where .= $wpdb->prepare( ' AND r.person_id=%d', $person );
+        }
+        $rows = $wpdb->get_results( "SELECT r.*,COALESCE(a.name,'Escolher ao receber') AS account_name,p.name AS person_name FROM {$wpdb->prefix}pds_fin_receipts r LEFT JOIN {$wpdb->prefix}pds_fin_accounts a ON a.id=r.account_id AND a.user_id=r.user_id LEFT JOIN {$wpdb->prefix}pds_fin_people p ON p.id=r.person_id AND p.user_id=r.user_id WHERE $where ORDER BY r.received_on DESC,r.id DESC LIMIT 1000", ARRAY_A );
+        foreach ( $rows as &$row ) {
+            foreach ( array( 'id', 'account_id' ) as $key ) { $row[ $key ] = (int) $row[ $key ]; }
+            foreach ( array( 'recurring_id', 'person_id', 'shared_expense_id', 'shared_installment_no', 'shared_installment_total' ) as $key ) { $row[ $key ] = $row[ $key ] ? (int) $row[ $key ] : null; }
+            $row['amount'] = (float) $row['amount']; $row['shared_planned_amount'] = null === $row['shared_planned_amount'] ? null : (float) $row['shared_planned_amount']; unset( $row['user_id'], $row['external_ref'] );
+        } unset( $row ); $pending = (float) $wpdb->get_var( "SELECT COALESCE(SUM(r.amount),0) FROM {$wpdb->prefix}pds_fin_receipts r WHERE $where AND r.status='pending'" ); $count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}pds_fin_receipts r WHERE $where" ); return array( 'receipts' => $rows, 'pending_total' => $pending, 'total_count' => $count );
     }
     public static function save_receipt( WP_REST_Request $r, $external_ref = null ) {
         $allowed = PDS_Expenses::permission(); if ( is_wp_error( $allowed ) ) { return $allowed; }
@@ -123,6 +134,7 @@ final class PDS_Finance {
             $existing = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_receipts WHERE user_id=%d AND external_ref=%s", $uid, $external_ref ) ); if ( $existing ) { return array( 'id' => (int) $existing, 'already_saved' => true ); }
         }
         $id = self::id( $r ); $old = $id ? self::find( 'receipts', $id ) : array(); if ( is_wp_error( $old ) ) { return $old; }
+        if ( ! empty( $old['shared_expense_id'] ) ) { return PDS_Finance_Sharing::save_receipt( $r, $old ); }
         $description = self::text( $r, 'description', 180, true ); $notes = self::text( $r, 'notes', 500 ); $amount = PDS_Expenses::amount( $r->get_param( 'amount' ) ); foreach ( array( $description, $notes, $amount ) as $v ) { if ( is_wp_error( $v ) ) { return $v; } }
         $account_id = $r->get_param( 'account_id' ); if ( ( ! is_int( $account_id ) && ! is_string( $account_id ) ) || ! preg_match( '/^[1-9][0-9]{0,17}$/D', (string) $account_id ) ) { return self::error( 'Escolha uma conta.' ); } $account = self::find( 'accounts', absint( $account_id ) ); if ( is_wp_error( $account ) ) { return $account; }
         if ( ! $account['active'] && ( ! $id || (int) $old['account_id'] !== (int) $account_id ) ) { return self::error( 'Escolha uma conta ativa.' ); }
@@ -136,7 +148,7 @@ final class PDS_Finance {
         if ( false === $ok ) { $wpdb->query( 'ROLLBACK' ); if ( $external_ref ) { $duplicate = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_receipts WHERE user_id=%d AND external_ref=%s", $uid, $external_ref ) ); if ( $duplicate ) { return array( 'id' => (int) $duplicate, 'already_saved' => true ); } } return self::error( 'Não foi possível salvar o recebimento.', 500 ); }
         $wpdb->query( 'COMMIT' ); return array( 'id' => $saved );
     }
-    public static function delete_receipt( WP_REST_Request $r ) { global $wpdb; $row = self::find( 'receipts', self::id( $r ) ); if ( is_wp_error( $row ) ) { return $row; } $where = array( 'id' => $row['id'], 'user_id' => get_current_user_id() ); $ok = ! empty( $row['recurring_id'] ) && 'received' !== $row['status'] ? $wpdb->update( $wpdb->prefix . 'pds_fin_receipts', array( 'status' => 'canceled' ), $where ) : $wpdb->delete( $wpdb->prefix . 'pds_fin_receipts', $where ); return false === $ok ? self::error( 'Não foi possível excluir.', 500 ) : array( 'success' => true ); }
+    public static function delete_receipt( WP_REST_Request $r ) { global $wpdb; $row = self::find( 'receipts', self::id( $r ) ); if ( is_wp_error( $row ) ) { return $row; } if ( ! empty( $row['shared_expense_id'] ) ) { return PDS_Finance_Sharing::cancel_receipt( $row ); } $where = array( 'id' => $row['id'], 'user_id' => get_current_user_id() ); $ok = ! empty( $row['recurring_id'] ) && 'received' !== $row['status'] ? $wpdb->update( $wpdb->prefix . 'pds_fin_receipts', array( 'status' => 'canceled' ), $where ) : $wpdb->delete( $wpdb->prefix . 'pds_fin_receipts', $where ); return false === $ok ? self::error( 'Não foi possível excluir.', 500 ) : array( 'success' => true ); }
     public static function plan( $card, $date, $cents, $count, $first = '', $start = 1 ) {
         if ( ! PDS_Expenses::valid_date( $date ) || $cents < 1 || $count < 1 || $count > 120 || $start < 1 || $start > $count || $cents < $count - $start + 1 ) { return self::error( 'Confira a compra: 1 a 120 parcelas, com pelo menos um centavo por parcela.' ); }
         if ( $first && ! self::month( $first ) ) { return self::error( 'Use AAAA-MM para a fatura inicial.' ); } $month = $first ?: self::first_month( $date, $card ); if ( ! self::month( self::add_month( $month, $count - $start ) ) ) { return self::error( 'O parcelamento ultrapassa o período permitido.' ); } $remaining = $count - $start + 1; $base = intdiv( $cents, $remaining ); $remainder = $cents % $remaining; $rows = array();
@@ -165,6 +177,7 @@ final class PDS_Finance {
             $start = (int) ( $options['installment_start'] ?? ( $old['installment_start'] ?? 1 ) ); $plan = self::plan( $card, $date, $cents, $n, $first ?: '', $start ); if ( is_wp_error( $plan ) ) { return $plan; }
             $result = array_replace( $result, array( 'card_id' => $card_id, 'installments' => $n, 'installment_start' => $start, 'first_invoice' => $plan['first_invoice'], 'installment_value' => $options['installment_value'] ?? ( $old['installment_value'] ?? null ), '_plan' => $plan, '_card' => $card ) );
         } elseif ( $account_id ) { $account = self::find( 'accounts', $account_id, $uid ); if ( is_wp_error( $account ) ) { return $account; } if ( ! $account['active'] && ( ! $old || (int) $old['account_id'] !== $account_id ) ) { return self::error( 'Escolha uma conta ativa.' ); } $result['account_id'] = $account_id; }
+        $person = PDS_Finance_Sharing::prepare( $r, $old, $payment, $card_id, $uid ); if ( is_wp_error( $person ) ) { return $person; } $result['person_id'] = $person;
         return $result;
     }
     public static function ensure_invoice( $card, $month ) {
@@ -177,11 +190,11 @@ final class PDS_Finance {
     public static function save_schedule( $id, $uid, $finance, $old, $amount, $date, $options = array() ) {
         global $wpdb;
         $same = $old && (int) $old['card_id'] === (int) $finance['card_id'] && (int) $old['installments'] === (int) $finance['installments'] && (int) $old['installment_start'] === (int) $finance['installment_start'] && $old['first_invoice'] === $finance['first_invoice'] && abs( (float) $old['amount'] - (float) $amount ) < 0.000001 && $old['spent_on'] === $date;
-        if ( $same ) { return true; }
+        if ( $same ) { return PDS_Finance_Sharing::sync( $id, $uid ); }
         if ( ! self::lock_expense_invoices( $id ) ) { return self::error( 'A fatura está sendo atualizada. Tente novamente.', 409 ); }
         if ( self::paid_expense( $id ) ) { return self::error( 'Essa compra pertence a uma fatura com pagamento registrado. Remova/corrija o pagamento antes de alterar valor, cartão ou parcelamento.', 409 ); }
         if ( false === $wpdb->delete( $wpdb->prefix . 'pds_fin_installments', array( 'expense_id' => $id, 'user_id' => $uid ) ) ) { return self::error( 'Não foi possível atualizar as parcelas.', 500 ); }
-        if ( ! $finance['card_id'] ) { return true; }
+        if ( ! $finance['card_id'] ) { return PDS_Finance_Sharing::sync( $id, $uid ); }
         foreach ( $finance['_plan']['installments'] as $part ) {
             $invoice = self::ensure_invoice( $finance['_card'], $part['invoice_month'] ); if ( is_wp_error( $invoice ) ) { return $invoice; }
             $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_invoices WHERE id=%d FOR UPDATE", $invoice ) );
@@ -189,10 +202,10 @@ final class PDS_Finance {
             $is_imported = isset( $options['bank_ref'] ) && (int) $part['installment_no'] === (int) $finance['installment_start'];
             $ok = $wpdb->insert( $wpdb->prefix . 'pds_fin_installments', array( 'user_id' => $uid, 'expense_id' => $id, 'card_id' => $finance['card_id'], 'invoice_id' => $invoice, 'installment_no' => $part['installment_no'], 'installment_total' => $part['installment_total'], 'amount' => number_format( $part['amount'], 2, '.', '' ), 'confirmed' => $is_imported ? 1 : 0, 'bank_ref' => $is_imported ? $options['bank_ref'] : null ) ); if ( false === $ok ) { return self::error( 'Não foi possível gerar todas as parcelas.', 500 ); }
         }
-        return true;
+        return PDS_Finance_Sharing::sync( $id, $uid );
     }
     private static function lock_expense_invoices( $id ) { global $wpdb; $wpdb->get_col( $wpdb->prepare( "SELECT i.id FROM {$wpdb->prefix}pds_fin_invoices i INNER JOIN {$wpdb->prefix}pds_fin_installments s ON s.invoice_id=i.id WHERE s.expense_id=%d ORDER BY i.id FOR UPDATE", $id ) ); return ! $wpdb->last_error; }
-    public static function remove_expense( $id, $uid ) { global $wpdb; if ( ! self::lock_expense_invoices( $id ) ) { return self::error( 'A fatura está sendo atualizada. Tente novamente.', 409 ); } if ( self::paid_expense( $id ) ) { return self::error( 'Há pagamento de fatura ligado a essa compra. Corrija/remova o pagamento antes de excluir a compra.', 409 ); } return false === $wpdb->delete( $wpdb->prefix . 'pds_fin_installments', array( 'expense_id' => $id, 'user_id' => $uid ) ) ? self::error( 'Não foi possível excluir as parcelas.', 500 ) : true; }
+    public static function remove_expense( $id, $uid ) { global $wpdb; $detached = PDS_Finance_Sharing::detach( $id, $uid ); if ( is_wp_error( $detached ) ) { return $detached; } if ( ! self::lock_expense_invoices( $id ) ) { return self::error( 'A fatura está sendo atualizada. Tente novamente.', 409 ); } if ( self::paid_expense( $id ) ) { return self::error( 'Há pagamento de fatura ligado a essa compra. Corrija/remova o pagamento antes de excluir a compra.', 409 ); } return false === $wpdb->delete( $wpdb->prefix . 'pds_fin_installments', array( 'expense_id' => $id, 'user_id' => $uid ) ) ? self::error( 'Não foi possível excluir as parcelas.', 500 ) : true; }
     public static function invoice_totals( $id ) {
         global $wpdb; $total = (float) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(amount),0) FROM {$wpdb->prefix}pds_fin_installments WHERE invoice_id=%d", $id ) ); $adjust = (float) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(amount),0) FROM {$wpdb->prefix}pds_fin_adjustments WHERE invoice_id=%d", $id ) ); $paid = (float) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(amount),0) FROM {$wpdb->prefix}pds_fin_bill_payments WHERE invoice_id=%d", $id ) );
         return array( 'total' => round( $total + $adjust, 2 ), 'paid' => round( $paid, 2 ), 'outstanding' => round( max( 0, $total + $adjust - $paid ), 2 ), 'credit_balance' => round( max( 0, $paid - $total - $adjust ), 2 ) );
@@ -208,15 +221,15 @@ final class PDS_Finance {
     private static function cast_invoice( $row ) { $row['id'] = (int) $row['id']; $row['card_id'] = (int) $row['card_id']; unset( $row['user_id'] ); $row = array_merge( $row, self::invoice_totals( $row['id'] ) ); $row['status'] = $row['total'] == 0 && $row['paid'] == 0 ? 'empty' : ( $row['outstanding'] <= 0 ? 'paid' : ( $row['due_on'] < current_time( 'Y-m-d' ) ? 'overdue' : ( $row['closing_on'] <= current_time( 'Y-m-d' ) ? 'closed' : 'open' ) ) ); return $row; }
     public static function invoice( WP_REST_Request $r ) {
         global $wpdb; $invoice = self::find( 'invoices', self::id( $r ) ); if ( is_wp_error( $invoice ) ) { return $invoice; } $card = self::find( 'cards', $invoice['card_id'] ); $invoice['card_name'] = $card['name']; $invoice = self::cast_invoice( $invoice );
-        $items = $wpdb->get_results( $wpdb->prepare( "SELECT s.*,e.description,e.spent_on,e.source,e.fuel_record_id,c.name AS category_name FROM {$wpdb->prefix}pds_fin_installments s INNER JOIN {$wpdb->prefix}pds_expenses e ON e.id=s.expense_id AND e.user_id=s.user_id INNER JOIN {$wpdb->prefix}pds_expense_categories c ON c.id=e.category_id AND c.user_id=e.user_id WHERE s.invoice_id=%d AND s.user_id=%d ORDER BY e.spent_on,e.id,s.installment_no LIMIT 2000", $invoice['id'], get_current_user_id() ), ARRAY_A );
-        foreach ( $items as &$item ) { foreach ( array( 'id', 'expense_id', 'installment_no', 'installment_total' ) as $key ) { $item[ $key ] = (int) $item[ $key ]; } $item['amount'] = (float) $item['amount']; $item['confirmed'] = (bool) $item['confirmed']; unset( $item['user_id'], $item['bank_ref'] ); } unset( $item );
+        $items = $wpdb->get_results( $wpdb->prepare( "SELECT s.*,e.description,e.person_id,e.spent_on,e.source,e.fuel_record_id,c.name AS category_name FROM {$wpdb->prefix}pds_fin_installments s INNER JOIN {$wpdb->prefix}pds_expenses e ON e.id=s.expense_id AND e.user_id=s.user_id INNER JOIN {$wpdb->prefix}pds_expense_categories c ON c.id=e.category_id AND c.user_id=e.user_id WHERE s.invoice_id=%d AND s.user_id=%d ORDER BY e.spent_on,e.id,s.installment_no LIMIT 2000", $invoice['id'], get_current_user_id() ), ARRAY_A );
+        foreach ( $items as &$item ) { foreach ( array( 'id', 'expense_id', 'installment_no', 'installment_total' ) as $key ) { $item[ $key ] = (int) $item[ $key ]; } $item['person_id'] = $item['person_id'] ? (int) $item['person_id'] : null; $item['person_name'] = PDS_Finance_Sharing::name( $item['person_id'], get_current_user_id() ); $item['amount'] = (float) $item['amount']; $item['confirmed'] = (bool) $item['confirmed']; unset( $item['user_id'], $item['bank_ref'] ); } unset( $item );
         $payments = $wpdb->get_results( $wpdb->prepare( "SELECT p.id,p.amount,p.paid_on,p.account_id,a.name AS account_name FROM {$wpdb->prefix}pds_fin_bill_payments p INNER JOIN {$wpdb->prefix}pds_fin_accounts a ON a.id=p.account_id AND a.user_id=p.user_id WHERE p.invoice_id=%d AND p.user_id=%d ORDER BY p.paid_on,p.id", $invoice['id'], get_current_user_id() ), ARRAY_A );
         $adjustments = $wpdb->get_results( $wpdb->prepare( "SELECT id,description,amount FROM {$wpdb->prefix}pds_fin_adjustments WHERE invoice_id=%d AND user_id=%d ORDER BY id", $invoice['id'], get_current_user_id() ), ARRAY_A );
         return array( 'invoice' => $invoice, 'items' => $items, 'payments' => $payments, 'adjustments' => $adjustments );
     }
     public static function update_invoice( WP_REST_Request $r ) {
         global $wpdb; $invoice = self::find( 'invoices', self::id( $r ) ); if ( is_wp_error( $invoice ) ) { return $invoice; } $due = $r->get_param( 'due_on' ); $close = $r->get_param( 'closing_on' ); if ( ! PDS_Expenses::valid_date( $due ) || ! PDS_Expenses::valid_date( $close ) || substr( $due, 0, 7 ) !== $invoice['invoice_month'] || $close > $due || $close < self::add_month( $invoice['invoice_month'], -1 ) . '-01' ) { return self::error( 'O vencimento deve permanecer no mês da fatura, a partir do fechamento. Confira o mês do fechamento (atual ou anterior).' ); }
-        return false === $wpdb->update( $wpdb->prefix . 'pds_fin_invoices', array( 'due_on' => $due, 'closing_on' => $close ), array( 'id' => $invoice['id'], 'user_id' => get_current_user_id() ) ) ? self::error( 'Não foi possível atualizar a fatura.', 500 ) : array( 'success' => true );
+        return PDS_Finance_Sharing::update_invoice( $invoice, $due, $close );
     }
     public static function pay_invoice( WP_REST_Request $r ) {
         global $wpdb; $invoice = self::find( 'invoices', self::id( $r ) ); if ( is_wp_error( $invoice ) ) { return $invoice; } $account = self::find( 'accounts', is_scalar( $r->get_param( 'account_id' ) ) ? absint( $r->get_param( 'account_id' ) ) : 0 ); if ( is_wp_error( $account ) ) { return $account; } if ( ! $account['active'] ) { return self::error( 'Escolha uma conta ativa para o pagamento.' ); }

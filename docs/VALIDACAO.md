@@ -206,3 +206,30 @@ Validação em 13 de novembro de 2026. A suíte completa reúne **902 verificaç
 
 Os testes financeiros usam dados fictícios no WordPress local. Nenhuma conta
 bancária de produção é acessada e nenhuma operação bancária é executada.
+
+## Fatura de cartão compartilhada — 1.10.0
+
+Validação em 13 de novembro de 2026. A suíte completa reúne **987 verificações**.
+
+* 57 verificações de integração: opção inicialmente desativada, cadastro de
+  nomes sem usuários WordPress, propriedade, nomes duplicados/inválidos,
+  arquivamento e reativação, e rejeição de outros meios de pagamento.
+* Exemplo Isabela R$ 200/4 gerando quatro reembolsos de R$ 50 nos vencimentos
+  reais; compra à vista, centavos exatos, parcelas restantes de importação e
+  atribuição particular de abastecimento no cartão.
+* Recebimentos previstos sem conta; total por pessoa; confirmação manual;
+  reversão, cancelamento sem regeneração, origem e campos controlados pelo
+  servidor, e proteção de reembolsos já realizados.
+* Edição de pessoa/valor/parcelas, remoção de compartilhamento, exclusão,
+  alteração de vencimento, reconciliação de importação e falha intermediária
+  com rollback de compra, parcelas e previsões.
+* 28 verificações pelo navegador: configuração WordPress real, cadastro de nome,
+  compra compartilhada, fatura normal, filtro e total a receber, baixa/reversão,
+  edição da compra e uso de dados existentes após desativar a opção.
+* Interface em 320, 390, 768 e 1440 pixels sem transbordamento ou erros JavaScript.
+* Exportação/apagamento de privacidade, isolamento por usuário, regressão dos
+  recursos anteriores e atualização nativa preservando pessoas, previsões e
+  configurações do portal.
+
+Os testes usam contas e pessoas fictícias no WordPress local, sem movimentações
+bancárias ou envio de nomes para reconhecimento por IA.

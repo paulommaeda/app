@@ -41,6 +41,7 @@ final class PDS_Admin {
                     <tr><th><label for="pds-page">Página principal</label></th><td><?php wp_dropdown_pages( array( 'name' => 'page_id', 'id' => 'pds-page', 'selected' => $settings['page_id'] ?? 0, 'show_option_none' => 'Selecione a página' ) ); ?><p class="description">A página deve conter o shortcode <code>[portal_servicos]</code>.</p></td></tr>
                     <tr><th>Cadastro público</th><td><label><input type="checkbox" name="registration" value="1" <?php checked( ! empty( $settings['registration'] ) ); ?>> Permitir criar contas pelo portal</label><p class="description">Cria clientes com permissão apenas de leitura. Não altera o cadastro público geral do WordPress.</p></td></tr>
                     <tr><th>Aparência</th><td><label><input type="checkbox" name="standalone" value="1" <?php checked( ! empty( $settings['standalone'] ) ); ?>> Exibir o portal em tela própria, sem cabeçalho e rodapé do tema</label></td></tr>
+                    <tr><th>Fatura de cartão compartilhada</th><td><label><input type="checkbox" name="shared_card" value="1" <?php checked( ! empty( $settings['shared_card'] ) ); ?>> Permitir registrar compras de outras pessoas e prever os reembolsos</label><p class="description">Cada usuário cadastra pessoas somente pelo nome. As parcelas continuam na fatura normal e geram recebimentos pendentes no vencimento. Desativar preserva os registros existentes.</p></td></tr>
                     <tr><th>Serviços disponíveis</th><td><?php foreach ( pds_get_services() as $slug => $service ) : ?><p><label><input type="checkbox" name="enabled_services[]" value="<?php echo esc_attr( $slug ); ?>" <?php checked( ! in_array( $slug, $settings['disabled_services'] ?? array(), true ) ); ?>> <?php echo esc_html( $service['title'] ); ?></label></p><?php endforeach; ?></td></tr>
                 </table>
                 <?php submit_button(); ?>
@@ -68,6 +69,7 @@ final class PDS_Admin {
         $settings = array_merge( $settings, array(
             'name' => $name, 'page_id' => $page_id, 'registration' => isset( $_POST['registration'] ) ? 1 : 0,
             'standalone' => isset( $_POST['standalone'] ) ? 1 : 0,
+            'shared_card' => isset( $_POST['shared_card'] ) ? 1 : 0,
             'disabled_services' => array_values( array_diff( $known, $enabled ) ),
         ) );
         update_option( 'pds_settings', $settings, false );

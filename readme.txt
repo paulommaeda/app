@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.9.0
+Stable tag: 1.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -157,6 +157,15 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.10.0 =
+* Fatura de cartão compartilhada opcional, ativada nas configurações do WordPress.
+* Pessoas cadastradas apenas pelo nome, privadas por usuário e sem novas contas WordPress.
+* Identificação de quem usou o cartão nos gastos e nas compras da fatura normal.
+* Recebimentos previstos por parcela, com valor exato e data de vencimento da respectiva fatura.
+* Filtro e total a receber por pessoa, com confirmação manual do recebimento na conta escolhida.
+* Sincronização de compras, parcelas, vencimentos e importação; proteção de reembolsos já recebidos.
+* Desativação preserva dados e recebimentos existentes; privacidade e atualização nativa integradas.
 
 = 1.9.0 =
 * Cadastro particular de tipos de conta financeira, com edição, arquivamento e reativação.

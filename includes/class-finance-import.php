@@ -110,7 +110,8 @@ final class PDS_Finance_Import {
         $category = PDS_Expenses::category( is_scalar( $row['category_id'] ) ? absint( $row['category_id'] ) : 0 ); if ( is_wp_error( $category ) ) { return $category; } if ( ! $category['active'] ) { return PDS_Finance::error( 'Escolha uma categoria ativa.' ); }
         if ( ! empty( $row['match_id'] ) ) {
             if ( ! is_scalar( $row['match_id'] ) ) { return PDS_Finance::error( 'Parcela de conferência inválida.' ); }
-            $wpdb->query( 'START TRANSACTION' ); $s = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_installments WHERE id=%d AND user_id=%d AND card_id=%d AND invoice_id=%d FOR UPDATE", $row['match_id'], get_current_user_id(), $card['id'], $invoice ), ARRAY_A );
+            $expense_id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT expense_id FROM {$wpdb->prefix}pds_fin_installments WHERE id=%d AND user_id=%d", $row['match_id'], get_current_user_id() ) );
+            $wpdb->query( 'START TRANSACTION' ); $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d FOR UPDATE", $expense_id, get_current_user_id() ) ); $s = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_installments WHERE id=%d AND user_id=%d AND card_id=%d AND invoice_id=%d FOR UPDATE", $row['match_id'], get_current_user_id(), $card['id'], $invoice ), ARRAY_A );
             if ( ! $s || (int) $s['installment_no'] !== (int) $i || (int) $s['installment_total'] !== (int) $n || ( $s['bank_ref'] && $s['bank_ref'] !== $row['bank_ref'] ) ) { $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( 'A parcela escolhida não corresponde a esta fatura ou já foi conferida.' ); }
             $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_invoices WHERE id=%d FOR UPDATE", $invoice ) );
             if ( abs( (float) $s['amount'] - $cents / 100 ) > 0.000001 && $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_bill_payments WHERE invoice_id=%d LIMIT 1", $invoice ) ) ) { $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( 'A fatura tem pagamento registrado. Corrija/remova o pagamento antes de alterar o valor da parcela.' ); }
@@ -118,6 +119,7 @@ final class PDS_Finance_Import {
             if ( false === $ok ) { $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( 'Não foi possível conferir essa parcela.', 500 ); }
             $wpdb->update( $wpdb->prefix . 'pds_expenses', array( 'category_id' => $category['id'] ), array( 'id' => $s['expense_id'], 'user_id' => get_current_user_id() ) );
             $e = $wpdb->get_row( $wpdb->prepare( "SELECT id,source FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d", $s['expense_id'], get_current_user_id() ), ARRAY_A ); if ( $e && $e['source'] === 'statement' ) { $sum = $wpdb->get_var( $wpdb->prepare( "SELECT SUM(amount) FROM {$wpdb->prefix}pds_fin_installments WHERE expense_id=%d", $e['id'] ) ); $wpdb->update( $wpdb->prefix . 'pds_expenses', array( 'amount' => $sum ), array( 'id' => $e['id'] ) ); }
+            $shared = PDS_Finance_Sharing::sync( $s['expense_id'], get_current_user_id() ); if ( is_wp_error( $shared ) ) { $wpdb->query( 'ROLLBACK' ); return $shared; }
             $wpdb->query( 'COMMIT' ); return 'matched';
         }
         $remaining = (int) $n - (int) $i + 1; $total = $cents * $remaining;

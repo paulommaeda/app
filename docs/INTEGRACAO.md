@@ -332,3 +332,40 @@ recalcula ciclos. Operações são transacionais, com propriedade e permissão d
 serviço `gastos`. A correção da baixa emite `pds_expense_updated` após confirmar a
 transação. Tipos e pagamentos estão incluídos na privacidade e na preservação da
 atualização nativa do plugin.
+
+## Pessoas e reembolsos de cartão — 1.10.0
+
+O administrador ativa `shared_card` em `pds_settings` pelo formulário protegido
+do painel. O padrão é desativado. Rotas de pessoas usam a sessão/nonce, a permissão
+do serviço `gastos` e a ativação dessa opção:
+
+* `GET /pds/v1/finance/people`: `people` com `id`, `name` e `active` próprios.
+* `POST /pds/v1/finance/people`: `name` (2–80 caracteres); `active` booleano opcional.
+* `PUT /pds/v1/finance/people/{id}`: `name` e/ou `active`.
+* `DELETE /pds/v1/finance/people/{id}`: arquivamento, mantendo vínculos existentes.
+
+`/expenses/categories` informa `shared_card_enabled` e `people` para a interface.
+Em gastos de cartão, `person_id` positivo atribui a compra a uma pessoa própria
+ativa; `0` remove a atribuição; ausência preserva a atribuição anterior. Outros
+pagamentos não aceitam pessoa. O mesmo campo é aceito no pagamento particular
+pelo autor de um abastecimento. A resposta do gasto inclui `person_id` e
+`person_name`; itens de fatura também incluem esses campos.
+
+Recebimentos automáticos usam `source=shared_card`, `person_id`,
+`shared_expense_id`, `shared_installment_no`, `shared_installment_total`,
+`shared_planned_amount` e `shared_planned_on`. O índice único por compra/parcela
+impede duplicação. A conta inicial é `account_id=0` enquanto não recebido.
+`GET /finance/receipts` aceita `person_id` opcional (sempre próprio), usa junção
+opcional de conta e retorna `pending_total` e `total_count` do período filtrado.
+
+A gravação de uma compra sincroniza previsões na mesma transação. Correções de
+vencimento e conferência de parcelas importadas também sincronizam previsões.
+Valores, pessoas ou datas previstas de reembolsos recebidos não são sobrescritos;
+correções incompatíveis retornam HTTP 409 e revertem a transação.
+
+A API nativa de recebimentos confirma reembolsos com conta própria e data real,
+ou restaura o estado pending com os dados previstos. Os campos de vínculo e o
+nome da previsão são controlados pelo servidor. `DELETE /finance/receipts/{id}`
+cancela um reembolso vinculado, mantendo sua identidade para não recriá-lo. Os
+campos enviados pelo cliente não podem forjar esses vínculos. Desativar a opção
+bloqueia novas atribuições, preservando manutenção e baixa dos registros antigos.

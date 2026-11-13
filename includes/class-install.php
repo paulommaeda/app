@@ -12,7 +12,7 @@ final class PDS_Install {
         if ( ! get_option( 'pds_settings' ) ) {
             add_option( 'pds_settings', array(
                 'name' => 'Meu Portal', 'registration' => 1, 'standalone' => 1,
-                'disabled_services' => array(), 'page_id' => 0,
+                'disabled_services' => array(), 'page_id' => 0, 'shared_card' => 0,
             ), '', false );
         }
         $settings = get_option( 'pds_settings', array() );
@@ -116,6 +116,7 @@ final class PDS_Install {
             installment_value decimal(12,2) DEFAULT NULL,
             fuel_record_id bigint(20) unsigned DEFAULT NULL,
             payable_id bigint(20) unsigned DEFAULT NULL,
+            person_id bigint(20) unsigned DEFAULT NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
@@ -221,7 +222,7 @@ final class PDS_Install {
             PRIMARY KEY  (user_id),
             KEY expires_at (expires_at)
         ) ENGINE=InnoDB $collate;" );
-        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts', 'pds_expenses', 'pds_expense_categories', 'pds_tg_expense_drafts', 'pds_tg_receipt_drafts', 'pds_fin_accounts', 'pds_fin_account_types', 'pds_fin_transfers', 'pds_fin_receipts', 'pds_fin_cards', 'pds_fin_invoices', 'pds_fin_installments', 'pds_fin_bill_payments', 'pds_fin_adjustments', 'pds_fin_recurring', 'pds_fin_payables', 'pds_tg_payable_drafts' ) as $table ) {
+        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts', 'pds_expenses', 'pds_expense_categories', 'pds_tg_expense_drafts', 'pds_tg_receipt_drafts', 'pds_fin_accounts', 'pds_fin_people', 'pds_fin_account_types', 'pds_fin_transfers', 'pds_fin_receipts', 'pds_fin_cards', 'pds_fin_invoices', 'pds_fin_installments', 'pds_fin_bill_payments', 'pds_fin_adjustments', 'pds_fin_recurring', 'pds_fin_payables', 'pds_tg_payable_drafts' ) as $table ) {
             $name = $prefix . $table;
             if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $name ) ) ) !== $name ) {
                 return new WP_Error( 'pds_schema', 'Não foi possível criar as tabelas do portal. Verifique as permissões do banco de dados e reative o plugin.' );

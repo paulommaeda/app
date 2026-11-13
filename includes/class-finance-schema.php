@@ -4,6 +4,16 @@ defined( 'ABSPATH' ) || exit;
 final class PDS_Finance_Schema {
     public static function create( $collate ) {
         global $wpdb; $p = $wpdb->prefix;
+        dbDelta( "CREATE TABLE {$p}pds_fin_people (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            name varchar(80) NOT NULL,
+            slug varchar(170) NOT NULL,
+            active tinyint(1) NOT NULL DEFAULT 1,
+            created_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY user_slug (user_id,slug)
+        ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_account_types (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             user_id bigint(20) unsigned NOT NULL,
@@ -59,13 +69,21 @@ final class PDS_Finance_Schema {
             external_ref varchar(96) DEFAULT NULL,
             recurring_id bigint(20) unsigned DEFAULT NULL,
             occurrence_month varchar(7) DEFAULT NULL,
+            person_id bigint(20) unsigned DEFAULT NULL,
+            shared_expense_id bigint(20) unsigned DEFAULT NULL,
+            shared_installment_no smallint unsigned DEFAULT NULL,
+            shared_installment_total smallint unsigned DEFAULT NULL,
+            shared_planned_amount decimal(12,2) DEFAULT NULL,
+            shared_planned_on date DEFAULT NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
             KEY user_date (user_id,received_on),
             KEY account_id (account_id),
             UNIQUE KEY external_ref (external_ref),
-            UNIQUE KEY recurring_month (recurring_id,occurrence_month)
+            UNIQUE KEY recurring_month (recurring_id,occurrence_month),
+            UNIQUE KEY shared_part (shared_expense_id,shared_installment_no),
+            KEY user_person (user_id,person_id,received_on)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_cards (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,

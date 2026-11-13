@@ -264,3 +264,15 @@ Na baixa de uma conta feita no crédito, a correção de data preserva as fatura
 parcelas já registradas, inclusive se já houve pagamento de fatura. Para alterar
 a distribuição entre faturas, use os ajustes financeiros apropriados, respeitando
 as restrições dos pagamentos já registrados. Esta ação é uma correção de data.
+
+## Fatura compartilhada opcional
+
+A versão **1.10.0** permite ativar, no painel WordPress, **Fatura de cartão
+compartilhada**. Pessoas são cadastradas somente pelo nome. Ao atribuir a compra
+no crédito a uma pessoa, as parcelas continuam nas faturas habituais e geram
+recebimentos pendentes nos mesmos valores e vencimentos. O dashboard de gastos
+continua único; o fluxo de caixa passa a considerar também esses valores a
+receber. Nenhuma confirmação de recebimento ocorre automaticamente.
+
+Consulte o [manual de cartão compartilhado](CARTAO-COMPARTILHADO.md) para ativação,
+correções, recebimento e preservação dos dados quando a opção é desativada.

@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.9.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.10.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.9.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.10.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -177,3 +177,16 @@ Na baixa de uma conta e no pagamento de uma fatura, escolha a **Data em que o
 pagamento foi feito**. Para corrigir depois, use **Alterar data do pagamento** na
 conta paga ou **Alterar data** no pagamento da fatura. O vencimento original e o
 valor ficam preservados. Veja [as regras financeiras](docs/FINANCEIRO.md).
+
+## Fatura de cartão compartilhada opcional (1.10.0)
+
+Ative **Fatura de cartão compartilhada** no painel **WordPress → Portal de
+Serviços**. Cada usuário poderá cadastrar nomes em **Meu Financeiro → Pessoas**.
+Ao registrar/editar uma compra no crédito, marque **Este gasto é de outra pessoa**,
+escolha quem usou o cartão e mantenha o parcelamento habitual.
+
+Uma compra de **R$ 200 em 4 vezes**, atribuída à **Isabela Maeda**, permanece na
+fatura normal e gera **quatro recebimentos previstos de R$ 50**, um em cada
+vencimento da fatura. O dashboard mantém todos os gastos juntos. Os reembolsos
+ficam em **Recebimentos**, com filtro por pessoa e baixa manual. Veja o
+[manual de cartão compartilhado](docs/CARTAO-COMPARTILHADO.md).

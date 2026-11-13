@@ -22,7 +22,7 @@ final class PDS_Finance_Fuel {
             $category = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expense_categories WHERE user_id=%d AND slug='combustivel'", $uid ) );
         }
         $payment = array();
-        if ( $request ) { foreach ( array( 'payment_method', 'account_id', 'card_id', 'installments', 'first_invoice' ) as $key ) { if ( $request->has_param( $key ) ) { $payment[ $key ] = $request->get_param( $key ); } } }
+        if ( $request ) { foreach ( array( 'payment_method', 'account_id', 'card_id', 'installments', 'person_id', 'first_invoice', 'person_id' ) as $key ) { if ( $request->has_param( $key ) ) { $payment[ $key ] = $request->get_param( $key ); } } }
         if ( $payment && ( $uid !== get_current_user_id() || ! pds_user_can_access_service( 'gastos', $uid ) ) ) { return PDS_Finance::error( 'Somente quem registrou pode alterar o pagamento particular desse abastecimento.', 403 ); }
         $pay = $payment['payment_method'] ?? ( $old['payment_method'] ?? '' ); if ( ! is_string( $pay ) || ! array_key_exists( $pay, PDS_Expenses::PAYMENTS ) ) { return PDS_Finance::error( 'Confira a forma de pagamento do abastecimento.' ); }
         $r = new WP_REST_Request( 'POST' ); $r->set_body_params( array_merge( $payment, array( 'payment_method' => $pay, 'amount' => $record['paid'], 'spent_on' => $record['filled_on'] ) ) );
@@ -40,7 +40,7 @@ final class PDS_Finance_Fuel {
     }
     public static function details( $record_id ) {
         global $wpdb; if ( ! pds_user_can_access_service( 'gastos' ) ) { return null; }
-        $row = $wpdb->get_row( $wpdb->prepare( "SELECT payment_method,account_id,card_id,installments,first_invoice FROM {$wpdb->prefix}pds_expenses WHERE fuel_record_id=%d AND user_id=%d", $record_id, get_current_user_id() ), ARRAY_A );
-        if ( $row ) { foreach ( array( 'account_id', 'card_id', 'installments' ) as $key ) { $row[ $key ] = (int) $row[ $key ]; } } return $row;
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT payment_method,account_id,card_id,installments,first_invoice,person_id FROM {$wpdb->prefix}pds_expenses WHERE fuel_record_id=%d AND user_id=%d", $record_id, get_current_user_id() ), ARRAY_A );
+        if ( $row ) { foreach ( array( 'account_id', 'card_id', 'installments', 'person_id' ) as $key ) { $row[ $key ] = (int) $row[ $key ]; } } return $row;
     }
 }

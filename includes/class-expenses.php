@@ -45,7 +45,7 @@ final class PDS_Expenses {
         return $rows;
     }
 
-    public static function categories() { return array( 'categories' => self::category_list( true ), 'payment_methods' => self::PAYMENTS, 'accounts' => PDS_Finance::accounts()['accounts'], 'account_types' => PDS_Finance_Account_Types::listing()['account_types'], 'cards' => PDS_Finance::cards()['cards'] ); }
+    public static function categories() { return array( 'categories' => self::category_list( true ), 'payment_methods' => self::PAYMENTS, 'accounts' => PDS_Finance::accounts()['accounts'], 'account_types' => PDS_Finance_Account_Types::listing()['account_types'], 'shared_card_enabled' => PDS_Finance_Sharing::enabled(), 'people' => PDS_Finance_Sharing::list_people(), 'cards' => PDS_Finance::cards()['cards'] ); }
 
     public static function category( $id ) {
         global $wpdb;
@@ -95,6 +95,7 @@ final class PDS_Expenses {
     private static function cast( $row ) {
         foreach ( array( 'id', 'category_id' ) as $key ) { $row[ $key ] = (int) $row[ $key ]; }
         foreach ( array( 'account_id', 'card_id', 'installments', 'installment_start' ) as $key ) { $row[ $key ] = (int) $row[ $key ]; }
+        $row['person_id'] = $row['person_id'] ? (int) $row['person_id'] : null; $row['person_name'] = PDS_Finance_Sharing::name( $row['person_id'], (int) $row['user_id'] );
         $row['payable_id'] = $row['payable_id'] ? (int) $row['payable_id'] : null;
         $row['fuel_record_id'] = $row['fuel_record_id'] ? (int) $row['fuel_record_id'] : null;
         $row['amount'] = (float) $row['amount']; $row['category_active'] = (bool) $row['category_active']; unset( $row['user_id'], $row['external_ref'] ); return $row;
