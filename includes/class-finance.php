@@ -48,7 +48,8 @@ final class PDS_Finance {
     private static function active( $r, $old ) { $v = $r->get_param( 'active' ); return null === $v ? (int) ( $old['active'] ?? 1 ) : ( is_bool( $v ) ? (int) $v : self::error( 'Informe um estado válido.' ) ); }
     private static function limit( $table ) { global $wpdb; return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}pds_fin_{$table} WHERE user_id=%d", get_current_user_id() ) ) < 100; }
     public static function accounts() {
-        global $wpdb; $uid = get_current_user_id(); $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_accounts WHERE user_id=%d ORDER BY active DESC,name,id", $uid ), ARRAY_A );
+        global $wpdb; $uid = get_current_user_id(); PDS_Finance_Account_Types::seed();
+        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT a.*,t.name AS kind_name,t.active AS kind_active FROM {$wpdb->prefix}pds_fin_accounts a LEFT JOIN {$wpdb->prefix}pds_fin_account_types t ON t.user_id=a.user_id AND t.code=a.kind WHERE a.user_id=%d ORDER BY a.active DESC,a.name,a.id", $uid ), ARRAY_A );
         foreach ( $rows as &$a ) { $a['id'] = (int) $a['id']; $a['active'] = (bool) $a['active']; $a['opening_balance'] = (float) $a['opening_balance']; $a['balance'] = self::account_balance( $a ); unset( $a['user_id'] ); } unset( $a ); return array( 'accounts' => $rows );
     }
     public static function account_balance( $a, $as_of = '' ) {
@@ -60,25 +61,31 @@ final class PDS_Finance {
         return round( (float) $a['opening_balance'] + (float) $income - (float) $out - (float) $paid + $transfers, 2 );
     }
     public static function save_account( WP_REST_Request $r ) {
-        global $wpdb; $id = self::id( $r ); $old = $id ? self::find( 'accounts', $id ) : array(); if ( is_wp_error( $old ) ) { return $old; }
+        global $wpdb; $id = self::id( $r ); $old = $id ? self::find( 'accounts', $id ) : array(); if ( is_wp_error( $old ) ) { return $old; } PDS_Finance_Account_Types::seed();
         $name = self::text( $r, 'name', 80, true ); $opening = self::cents( $r->get_param( 'opening_balance' ) ?? '0', true ); $date = $r->get_param( 'opening_on' ); $kind = $r->get_param( 'kind' ) ?? 'checking'; $active = self::active( $r, $old );
         foreach ( array( $name, $opening, $active ) as $v ) { if ( is_wp_error( $v ) ) { return $v; } }
-        if ( ! PDS_Expenses::valid_date( $date ) || $date > current_time( 'Y-m-d' ) || ! in_array( $kind, array( 'checking', 'savings', 'cash' ), true ) ) { return self::error( 'Confira a data do saldo inicial e o tipo de conta.' ); }
+        if ( ! PDS_Expenses::valid_date( $date ) || $date > current_time( 'Y-m-d' ) ) { return self::error( 'Confira a data do saldo inicial.' ); }
         if ( ! $id && ! self::limit( 'accounts' ) ) { return self::error( 'Limite de 100 contas por usuário.' ); }
         $data = array( 'name' => $name, 'opening_balance' => self::decimal( $opening ), 'opening_on' => $date, 'kind' => $kind, 'active' => $active );
+        if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return self::error( 'Não foi possível iniciar o cadastro da conta.', 500 ); }
         if ( $id ) {
-            if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return self::error( 'Não foi possível iniciar a atualização da conta.', 500 ); }
-            $locked = $wpdb->get_row( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_accounts WHERE id=%d AND user_id=%d FOR UPDATE", $id, get_current_user_id() ), ARRAY_A );
+            $locked = $wpdb->get_row( $wpdb->prepare( "SELECT id,kind FROM {$wpdb->prefix}pds_fin_accounts WHERE id=%d AND user_id=%d FOR UPDATE", $id, get_current_user_id() ), ARRAY_A );
             if ( ! $locked || $wpdb->last_error ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Conta não encontrada ou em atualização.', 409 ); }
+        }
+        $type_check = PDS_Finance_Account_Types::validate( $kind, $id ? $locked['kind'] : '' );
+        if ( is_wp_error( $type_check ) ) { $wpdb->query( 'ROLLBACK' ); return $type_check; }
+        if ( $id ) {
             $check = PDS_Finance_Transfers::check_account_date( $id, get_current_user_id(), $date );
             if ( is_wp_error( $check ) ) { $wpdb->query( 'ROLLBACK' ); return $check; }
             $ok = $wpdb->update( $wpdb->prefix . 'pds_fin_accounts', $data, array( 'id' => $id, 'user_id' => get_current_user_id() ) );
             if ( false === $ok ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível salvar a conta.', 500 ); }
-            if ( false === $wpdb->query( 'COMMIT' ) ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível confirmar a atualização da conta.', 500 ); }
         } else {
             $ok = $wpdb->insert( $wpdb->prefix . 'pds_fin_accounts', $data + array( 'user_id' => get_current_user_id(), 'created_at' => current_time( 'mysql', true ) ) );
         }
-        return false === $ok ? self::error( 'Não foi possível salvar a conta.', 500 ) : array( 'id' => $id ?: (int) $wpdb->insert_id );
+        $saved_id = $id ?: (int) $wpdb->insert_id;
+        if ( false === $ok ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível salvar a conta.', 500 ); }
+        if ( false === $wpdb->query( 'COMMIT' ) ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível confirmar o cadastro da conta.', 500 ); }
+        return array( 'id' => $saved_id );
     }
     public static function archive_account( WP_REST_Request $r ) { return self::archive( 'accounts', self::id( $r ) ); }
     public static function archive_card( WP_REST_Request $r ) { return self::archive( 'cards', self::id( $r ) ); }

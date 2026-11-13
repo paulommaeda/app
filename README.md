@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.8.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.9.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.8.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.9.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -165,3 +165,15 @@ destino, valor e a data da transferência realizada. Também há um atalho
 destino, preservando o total entre as contas e os totais de gastos/recebimentos.
 O histórico permite filtrar mês, conta e situação, além de estornar um registro
 sem apagá-lo. Veja [as regras financeiras](docs/FINANCEIRO.md#transferências-entre-contas).
+
+## Tipos de conta e datas de pagamento (1.9.0)
+
+Em **Meu Financeiro → Contas → Tipos de conta**, cadastre suas classificações de
+contas bancárias e carteiras. Os três tipos iniciais são mantidos; é possível
+renomear, arquivar e reativar qualquer tipo, sem remover contas ou movimentações.
+As opções aparecem no campo **Tipo de conta** do cadastro da conta financeira.
+
+Na baixa de uma conta e no pagamento de uma fatura, escolha a **Data em que o
+pagamento foi feito**. Para corrigir depois, use **Alterar data do pagamento** na
+conta paga ou **Alterar data** no pagamento da fatura. O vencimento original e o
+valor ficam preservados. Veja [as regras financeiras](docs/FINANCEIRO.md).

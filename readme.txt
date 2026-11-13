@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.8.0
+Stable tag: 1.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -157,6 +157,14 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.9.0 =
+* Cadastro particular de tipos de conta financeira, com edição, arquivamento e reativação.
+* Tipos personalizados disponíveis nas contas; tipos antigos, saldos e históricos preservados.
+* Data real do pagamento destacada na baixa de contas e no pagamento das faturas.
+* Correção posterior da data de pagamentos, preservando valores, vínculos e vencimentos.
+* Saldos históricos e fluxo de caixa seguem as datas corrigidas, sem duplicar lançamentos.
+* Privacidade, permissões e atualização nativa incluem os novos cadastros.
 
 = 1.8.0 =
 * Transferências entre contas próprias com origem, destino, valor, data e observações.

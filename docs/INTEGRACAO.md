@@ -304,3 +304,31 @@ em `pds_expenses` ou `pds_fin_receipts`.
 realizadas, respeitando a data inicial e o saldo histórico solicitado. O estorno
 remove o efeito original também de consultas históricas. O fluxo de caixa
 continua excluindo transferências dos indicadores de receitas/despesas.
+
+## Tipos de conta e datas de pagamento — 1.9.0
+
+* `GET /pds/v1/finance/account-types`: retorna `account_types`, com `id`, `code`,
+  `name`, `active` e `account_count`, limitado ao proprietário autenticado.
+* `POST /pds/v1/finance/account-types`: `name` e `active` opcional (booleano).
+* `PUT /pds/v1/finance/account-types/{id}`: `name` e/ou `active`.
+* `DELETE /pds/v1/finance/account-types/{id}`: arquiva, sem remover vínculos.
+
+O código `code` é gerado pelo servidor e não muda quando o tipo é renomeado.
+Use esse código no campo `kind` de `/finance/accounts`. Os códigos anteriores
+`checking`, `savings` e `cash` continuam válidos. A resposta de contas passa a
+incluir `kind_name` e `kind_active`; `/expenses/categories` inclui `account_types`
+para alimentar os seletores do portal. Tipos arquivados só podem permanecer
+nas contas que já os utilizavam. Nome/código/contas são sempre do mesmo usuário.
+
+* `PUT /pds/v1/finance/payments/{id}` com `paid_on` (YYYY-MM-DD) corrige a data
+  de um pagamento de fatura já registrado.
+* `PUT /pds/v1/finance/payables/{id}/payment-date` com `paid_on` corrige a data
+  da baixa de uma conta paga e de seu gasto associado.
+
+As duas correções validam datas reais até hoje e não alteram valores ou vínculos
+financeiros, mesmo que outros campos sejam enviados. A correção de baixa no
+crédito preserva parcelas/faturas existentes; corrige a data do gasto e não
+recalcula ciclos. Operações são transacionais, com propriedade e permissão do
+serviço `gastos`. A correção da baixa emite `pds_expense_updated` após confirmar a
+transação. Tipos e pagamentos estão incluídos na privacidade e na preservação da
+atualização nativa do plugin.

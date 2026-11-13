@@ -226,3 +226,41 @@ são um comando do bot nesta versão.
 
 As ferramentas de exportação/apagamento do WordPress incluem transferências e
 estornos, sempre no usuário proprietário.
+
+## Tipos de conta personalizados
+
+Na versão **1.9.0**, **Contas → Tipos de conta** reúne o cadastro particular de
+classificações das contas financeiras. **Conta corrente**, **Poupança** e
+**Dinheiro / carteira** continuam disponíveis, inclusive nas contas anteriores à
+atualização. Cadastre opções como **Conta digital**, **Investimentos** ou
+**Benefícios**, com nome de 2 a 80 caracteres (até 100 tipos por usuário).
+
+É possível renomear, arquivar e reativar tipos. Renomear atualiza o nome exibido
+nas contas vinculadas; os saldos e movimentos não são alterados. Arquivar impede
+selecionar o tipo para novas contas, mantendo o tipo nas contas que já o usam e
+no histórico. As contas existentes podem continuar com um tipo arquivado durante
+sua edição. O mesmo nome pode ser usado por usuários diferentes, com isolamento
+completo; dentro da mesma conta WordPress, nomes repetidos são rejeitados.
+
+## Data real e correção de pagamentos
+
+Ao **Dar baixa** em uma conta a pagar ou **Registrar pagamento** de uma fatura,
+o campo **Data em que o pagamento foi feito** começa em hoje e pode ser alterado
+para uma data anterior. Informe a data do comprovante; vencimento e pagamento
+são datas independentes. Datas futuras não são aceitas para pagamentos realizados.
+
+Se precisar corrigir depois de salvar:
+
+* Na conta paga, use **Alterar data do pagamento**.
+* Nos detalhes da fatura, em **Pagamentos**, use **Alterar data** na linha correta.
+
+A correção altera somente a data do registro original e, na baixa de uma conta,
+a data do gasto associado. Não cria outro gasto/pagamento nem altera valor,
+conta, cartão, vencimento ou situação de quitação. O fluxo de caixa e os saldos
+históricos seguem a data real corrigida. As regras da data do saldo inicial da
+conta continuam valendo: movimentos anteriores a ela não mudam esse saldo.
+
+Na baixa de uma conta feita no crédito, a correção de data preserva as faturas e
+parcelas já registradas, inclusive se já houve pagamento de fatura. Para alterar
+a distribuição entre faturas, use os ajustes financeiros apropriados, respeitando
+as restrições dos pagamentos já registrados. Esta ação é uma correção de data.

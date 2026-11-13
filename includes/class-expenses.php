@@ -45,7 +45,7 @@ final class PDS_Expenses {
         return $rows;
     }
 
-    public static function categories() { return array( 'categories' => self::category_list( true ), 'payment_methods' => self::PAYMENTS, 'accounts' => PDS_Finance::accounts()['accounts'], 'cards' => PDS_Finance::cards()['cards'] ); }
+    public static function categories() { return array( 'categories' => self::category_list( true ), 'payment_methods' => self::PAYMENTS, 'accounts' => PDS_Finance::accounts()['accounts'], 'account_types' => PDS_Finance_Account_Types::listing()['account_types'], 'cards' => PDS_Finance::cards()['cards'] ); }
 
     public static function category( $id ) {
         global $wpdb;

@@ -184,3 +184,25 @@ com o mesmo ambiente WordPress/PHP/MariaDB/Chromium descrito acima.
 Nenhuma transferência bancária real é executada; os testes usam contas fictícias
 no banco local. A chave de IA, os vínculos Telegram e os dados de produção não
 são utilizados durante essa validação.
+
+## Tipos de conta e datas de pagamento — 1.9.0
+
+Validação em 13 de novembro de 2026. A suíte completa reúne **902 verificações**.
+
+* 39 verificações de integração: migração de tipos antigos, cadastro particular,
+  código imutável, nomes repetidos, renomeação de tipo em uso, arquivamento,
+  reativação, isolamento por usuário e restrições do serviço financeiro.
+* Pagamentos de contas e faturas registrados com data anterior, correção posterior
+  preservando IDs/valores/vencimentos, saldos históricos e períodos do fluxo de
+  caixa, rejeição de datas futuras/inválidas e acesso de outro usuário.
+* Falha intermediária reverte a alteração do gasto e da conta na mesma transação.
+  Correção de data de uma baixa no crédito preserva parcelas e faturas já pagas.
+* 24 verificações pelo navegador: cadastro, seleção e edição de tipos; arquivamento
+  e reativação; erro de nome duplicado; escolha e correção das datas reais em
+  contas/faturas; valores e saldos corretos; formulários em telas de celular.
+* Interfaces em 320, 390, 768 e 1440 pixels, sem transbordamento ou erros JavaScript.
+* Atualização nativa preserva também os tipos cadastrados, as datas corrigidas e
+  as configurações anteriores de contas, transferências, Telegram e provedores IA.
+
+Os testes financeiros usam dados fictícios no WordPress local. Nenhuma conta
+bancária de produção é acessada e nenhuma operação bancária é executada.

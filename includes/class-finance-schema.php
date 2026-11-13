@@ -4,6 +4,18 @@ defined( 'ABSPATH' ) || exit;
 final class PDS_Finance_Schema {
     public static function create( $collate ) {
         global $wpdb; $p = $wpdb->prefix;
+        dbDelta( "CREATE TABLE {$p}pds_fin_account_types (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            code varchar(16) NOT NULL,
+            name varchar(80) NOT NULL,
+            slug varchar(170) NOT NULL,
+            active tinyint(1) NOT NULL DEFAULT 1,
+            created_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY user_code (user_id,code),
+            UNIQUE KEY user_slug (user_id,slug)
+        ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_accounts (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             user_id bigint(20) unsigned NOT NULL,
