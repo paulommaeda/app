@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Portal de Serviços
  * Description: Portal com contas WordPress, controle financeiro e de abastecimentos, com gastos e recebimentos por voz no Telegram.
- * Version: 1.7.0
+ * Version: 1.8.0
  * Plugin URI: https://github.com/paulommaeda/app
  * Update URI: https://github.com/paulommaeda/app
  * Requires at least: 6.6
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PDS_VERSION', '1.7.0' );
+define( 'PDS_VERSION', '1.8.0' );
 define( 'PDS_FILE', __FILE__ );
 define( 'PDS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PDS_URL', plugin_dir_url( __FILE__ ) );
@@ -26,6 +26,7 @@ require_once PDS_DIR . 'includes/class-finance.php';
 require_once PDS_DIR . 'includes/class-finance-fuel.php';
 require_once PDS_DIR . 'includes/class-finance-import.php';
 require_once PDS_DIR . 'includes/class-finance-planning.php';
+require_once PDS_DIR . 'includes/class-finance-transfers.php';
 require_once PDS_DIR . 'includes/services.php';
 require_once PDS_DIR . 'includes/class-core.php';
 require_once PDS_DIR . 'includes/class-auth.php';
@@ -58,6 +59,7 @@ add_action( 'plugins_loaded', static function () {
     PDS_Fuel::boot();
     PDS_Expenses::boot();
     PDS_Finance::boot();
+    PDS_Finance_Transfers::boot();
     PDS_Finance_Planning::boot();
     PDS_Finance_Fuel::boot();
     PDS_Finance_Import::boot();

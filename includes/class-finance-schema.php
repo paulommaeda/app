@@ -16,6 +16,24 @@ final class PDS_Finance_Schema {
             PRIMARY KEY  (id),
             KEY user_id (user_id)
         ) ENGINE=InnoDB $collate;" );
+        dbDelta( "CREATE TABLE {$p}pds_fin_transfers (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            from_account_id bigint(20) unsigned NOT NULL,
+            to_account_id bigint(20) unsigned NOT NULL,
+            amount decimal(12,2) NOT NULL,
+            transferred_on date NOT NULL,
+            notes varchar(500) NOT NULL DEFAULT '',
+            status varchar(12) NOT NULL DEFAULT 'completed',
+            request_key varchar(64) NOT NULL,
+            created_at datetime NOT NULL,
+            reversed_at datetime DEFAULT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY request_key (request_key),
+            KEY user_date (user_id,transferred_on),
+            KEY from_account (user_id,from_account_id,status,transferred_on),
+            KEY to_account (user_id,to_account_id,status,transferred_on)
+        ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_receipts (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             user_id bigint(20) unsigned NOT NULL,

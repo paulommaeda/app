@@ -161,3 +161,26 @@ mantém o modelo, as chaves, os vínculos, as preferências e os dados existente
 As respostas dos provedores externos permanecem simuladas nos testes. O cadastro
 pelo bot é exercitado com a validação e o razão financeiro reais do WordPress;
 nenhum pagamento ou recebimento bancário é executado pelo plugin.
+
+## Transferências entre contas — 1.8.0
+
+Validação em 13 de novembro de 2026. A suíte completa reúne **839 verificações**,
+com o mesmo ambiente WordPress/PHP/MariaDB/Chromium descrito acima.
+
+* 48 verificações de integração de transferências: centavos e valores localizados,
+  conservação dos saldos, exclusão dos totais de gastos/receitas, saldos históricos,
+  contas próprias e ativas, permissões de serviço e datas dos saldos iniciais.
+* Repetição idempotente, conflito ao reutilizar chave com outros dados, falha de
+  gravação sem efeito parcial, estorno repetido e reenvio de pedido já estornado.
+* Histórico nos dois sentidos, filtros por conta/mês/situação e paginação de 51
+  movimentos de um centavo, além de exportação/apagamento de privacidade.
+* 24 verificações no navegador: cadastro real, atalhos nas contas, conta de
+  destino diferente da origem, saldos, erros do formulário, confirmação de
+  estorno, falha de rede depois da gravação e repetição sem duplicação.
+* Interface em 320, 390, 768 e 1440 pixels, sem transbordamento ou erros JavaScript.
+* Regressão dos serviços anteriores e atualização nativa preservando também a
+  tabela de transferências, os usuários e todas as configurações existentes.
+
+Nenhuma transferência bancária real é executada; os testes usam contas fictícias
+no banco local. A chave de IA, os vínculos Telegram e os dados de produção não
+são utilizados durante essa validação.

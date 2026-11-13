@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -157,6 +157,14 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.8.0 =
+* Transferências entre contas próprias com origem, destino, valor, data e observações.
+* Saldos atualizados nas duas contas sem gerar gastos, recebimentos ou distorcer dashboards.
+* Histórico mensal com filtros por conta/situação, paginação e estorno do registro.
+* Gravação atômica, proteção contra duplicação após falhas de conexão e isolamento por usuário.
+* Atalho Transferir em cada conta ativa, interface responsiva e privacidade integrada.
+* Validação de contas arquivadas e datas iniciais para manter os dois lados do movimento.
 
 = 1.7.0 =
 * Contas a pagar únicas ou mensais, inclusive com valor a definir, e baixa manual com valor/data reais.

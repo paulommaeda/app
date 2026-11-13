@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.7.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.8.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.7.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.8.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -156,3 +156,12 @@ Exemplos no mesmo Telegram:
 
 `/contasapagar` mostra ajuda para previsões. Os vínculos, o modelo da IA e as
 preferências de confirmação continuam valendo. Consulte [PLANEJAMENTO.md](docs/PLANEJAMENTO.md).
+
+## Transferências entre contas (1.8.0)
+
+Em **Meu Financeiro → Transferências → Nova transferência**, selecione origem,
+destino, valor e a data da transferência realizada. Também há um atalho
+**Transferir** em cada conta ativa. O valor reduz o saldo da origem e aumenta o
+destino, preservando o total entre as contas e os totais de gastos/recebimentos.
+O histórico permite filtrar mês, conta e situação, além de estornar um registro
+sem apagá-lo. Veja [as regras financeiras](docs/FINANCEIRO.md#transferências-entre-contas).

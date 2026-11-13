@@ -23,7 +23,7 @@ A chave e o modelo existentes não são sobrescritos pela atualização.
 Contas podem ser corrente, poupança ou dinheiro/carteira. Informe o saldo **antes
 dos movimentos da data inicial**. O saldo atual considera, da data inicial até
 hoje: saldo inicial + entradas recebidas − gastos diretos vinculados à conta −
-pagamentos de faturas. Movimentos anteriores ficam no histórico e não alteram
+pagamentos de faturas + transferências recebidas − transferências enviadas. Movimentos anteriores ficam no histórico e não alteram
 esse saldo. Saldo inicial negativo é permitido. Não há sincronização bancária.
 
 Em **Recebimentos**, informe descrição, valor, data, conta de destino e situação.
@@ -191,3 +191,38 @@ portal recalculam o saldo normalmente. Desde 1.7.0, previsões também podem ser
 **Prever recebimento** cadastra entradas futuras, únicas ou mensais. Previsões
 não alteram saldos; o vencimento não efetua baixa. Confirme valor/data reais com
 **Dar baixa** ou **Marcar recebido**. Veja [PLANEJAMENTO.md](PLANEJAMENTO.md).
+
+## Transferências entre contas
+
+A partir da versão **1.8.0**, abra **Transferências → Nova transferência** ou use
+**Transferir** na conta de origem. Escolha duas contas próprias ativas, valor
+positivo, data realizada até hoje e observações opcionais. Conta corrente,
+poupança e dinheiro/carteira podem participar. A data não pode anteceder o
+saldo inicial de nenhuma das duas contas.
+
+Cada transferência é um único movimento: o mesmo valor sai da origem e entra
+no destino. Ela não gera despesa nem receita, não altera categorias de gastos,
+não entra nos totais de entradas/saídas do fluxo de caixa e não modifica faturas.
+Os saldos das contas exibidos no portal e no fluxo de caixa já incluem o efeito
+líquido. O total entre origem e destino permanece igual. Saldos negativos são
+permitidos, como nos demais movimentos do controle financeiro.
+
+O histórico tem filtros por mês da transferência, conta envolvida (origem ou
+destino) e situação, com 50 registros por página. Renomear/arquivar uma conta
+preserva o histórico. Para corrigir origem, destino, data ou valor, use
+**Estornar registro** e cadastre novamente. O estorno exige confirmação, desfaz
+o efeito do movimento original nos saldos, inclusive nos saldos históricos, e
+mantém a linha identificada como **Estornada**. Pode ser feito mesmo se a conta
+foi arquivada. Repetir um estorno ou reenviar o mesmo salvamento após uma falha
+de conexão não duplica movimentos.
+
+Enquanto houver transferência ativa, a data do saldo inicial da conta não pode
+ser movida para depois desse movimento: isso evita ocultar apenas um lado do
+valor transferido. O saldo inicial pode ser corrigido normalmente. São registros
+de transferências que você já realizou; o plugin não executa operações no banco.
+O cadastro desta versão é pelo portal. O reconhecimento Telegram continua com
+abastecimentos, gastos, recebimentos e previsões; transferências internas não
+são um comando do bot nesta versão.
+
+As ferramentas de exportação/apagamento do WordPress incluem transferências e
+estornos, sempre no usuário proprietário.

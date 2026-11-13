@@ -278,3 +278,29 @@ previsto/indefinido, categoria, conta bancária opcional e recorrência. `receip
 aceita status received/pending e os mesmos campos de repetição. Dados internos
 de ID, cursor, referências e flags não são enviados à IA. `pds_tg_payable_drafts`
 e record_service=contas_pagar separam as pendências e as respostas gravadas.
+
+## Transferências internas — 1.8.0
+
+Todas as rotas abaixo usam sessão/nonce WordPress e a permissão do serviço
+`gastos`, sempre com propriedade verificada nas duas contas.
+
+* `GET /pds/v1/finance/transfers`: filtros `month` (YYYY-MM), `account_id` opcional,
+  `status` (`all`, `completed`, `reversed`) e `page` (50 por página). Retorna
+  `transfers`, `total`, `page` e `pages`; cada linha inclui nomes da origem/destino.
+* `POST /pds/v1/finance/transfers`: `from_account_id`, `to_account_id`, `amount`,
+  `transferred_on` (YYYY-MM-DD), `notes` opcional e `request_key` obrigatório
+  (16–80 caracteres: letras, números, `_` ou `-`; um UUID serve).
+* `POST /pds/v1/finance/transfers/{id}/reverse`: estorna somente o registro próprio,
+  preserva histórico e é idempotente. Não é uma transferência bancária.
+
+Um cliente deve reutilizar `request_key` ao repetir o mesmo pedido por timeout.
+Com conteúdo diferente, a mesma chave retorna HTTP 409. A chave é vinculada ao
+usuário no servidor e não é exposta na listagem. Transferências estornadas não
+são recriadas por reenvio do pedido antigo. Contas são bloqueadas em ordem de ID
+na transação e cada transferência é uma linha única. Não são criados registros
+em `pds_expenses` ou `pds_fin_receipts`.
+
+`PDS_Finance::account_balance()` inclui o efeito líquido das transferências
+realizadas, respeitando a data inicial e o saldo histórico solicitado. O estorno
+remove o efeito original também de consultas históricas. O fluxo de caixa
+continua excluindo transferências dos indicadores de receitas/despesas.
