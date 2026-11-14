@@ -423,3 +423,56 @@ acumulados. A partir de um novo acordo, parcelas anteriores mantêm seus víncul
 Mudanças que invalidem reembolsos já recebidos retornam 409 e revertem toda a
 operação; é possível escolher uma parcela posterior como início do novo acordo.
 Divisões e campos adicionais integram exportação/apagamento e atualização nativa.
+
+
+## Assinaturas do cartão — 1.12.0
+
+Rotas com a mesma autenticação/nonce, propriedade e permissão do serviço financeiro:
+
+* `GET /pds/v1/finance/subscriptions`: `subscriptions`, `monthly_total` e `warnings`.
+* `POST /finance/subscriptions`: `name`, `merchant`, `card_id`, `category_id`,
+  `amount`, `billing_day` (1–31), `first_invoice` opcional (AAAA-MM), `notes`
+  opcional e `status` (`active`, `paused`, `canceled`). `source_expense_id`
+  opcional vincula uma compra própria à vista já existente, sem duplicá-la.
+* `PUT /finance/subscriptions/{id}`: edição parcial dos campos e da situação;
+  `first_invoice` é imutável após cadastrar. Atualiza apenas previsões abertas
+  sem pagamentos. Reativação retoma na próxima fatura aberta.
+* `DELETE /finance/subscriptions/{id}`: exclusão da lista, com histórico preservado.
+* `GET /finance/subscriptions/suggestions`: sugestões com compra de origem,
+  descrição, cartão, valor, quantidade de faturas e motivo, sem ativação automática.
+* `GET /finance/subscriptions/source/{expense_id}`: formulário preenchido a partir
+  da compra própria; rejeita parcelamentos e outros meios de pagamento.
+* `POST /finance/subscription-charges/{id}/confirm`: `amount`, `spent_on` e
+  `category_id` opcionais para conferir a cobrança real; `sharing` opcional usa
+  a mesma divisão das compras normais. Repetições retornam o mesmo gasto.
+* `DELETE /finance/subscription-charges/{id}`: remove somente a ocorrência prevista,
+  impedindo regeneração. Rejeita cobranças realizadas ou faturas com pagamentos.
+
+`pds_fin_subscriptions` guarda configurações e o cursor `next_month` por usuário.
+`pds_fin_subscription_charges` guarda a ocorrência por assinatura/mês de fatura,
+com descrição, valor e data próprios. `expense_id` único fica nulo na previsão.
+Estados: `planned`, `confirming` (apenas dentro da transação), `confirmed`,
+`canceled` (pausa/cancelamento) e `skipped` (ocorrência explicitamente removida).
+Exclusão de cadastro usa `status=deleted` e libera seu nome para recadastro,
+preservando o histórico. Compras de cadastros excluídos podem ser reassociadas
+sem recriar o gasto.
+
+A ação horária `pds_finance_subscriptions` processa até 50 usuários por rodada,
+com cursor persistido, respeitando bloqueios do serviço. Consultas financeiras
+executam a mesma sincronização idempotente. O fechamento efetivo determina até
+qual fatura gerar; uma rodada recupera até 120 meses por assinatura.
+
+`invoice_totals` inclui `subscription_forecast`, já somado em `total` e em aberto.
+Itens previstos usam `id="subscription:{charge_id}"`, `expense_id=0`,
+`is_subscription_forecast=true`, `subscription_id` e `subscription_charge_id`.
+Eles não existem na tabela de gastos. Na prévia da importação, candidatos podem
+usar esse ID textual em `match_id`. A confirmação valida novamente usuário,
+cartão, mês, pagamento, valor e data antes de substituir a previsão pelo gasto.
+Cobranças importadas usam a origem nativa `statement`; confirmações manuais usam
+`subscription`. Campos internos, vínculos e a troca transacional não são
+controlados por parâmetros REST de gastos comuns.
+
+Faturas com pagamentos permitem substituição pelo mesmo valor, mantendo totais
+pagos e em aberto; alterações de valor retornam 409. Recebimentos e pagamentos
+não são criados pela geração ou confirmação. Novos cadastros, ocorrências e
+campos integram privacidade e atualização nativa.

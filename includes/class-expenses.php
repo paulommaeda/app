@@ -111,7 +111,7 @@ final class PDS_Expenses {
     public static function save_entry( WP_REST_Request $request, $external_ref = null, $options = array() ) {
         $allowed = self::permission(); if ( is_wp_error( $allowed ) ) { return $allowed; }
         global $wpdb; $uid = get_current_user_id(); $id = absint( $request->get_url_params()['id'] ?? 0 );
-        if ( $external_ref && ( ! is_string( $external_ref ) || ! preg_match( '/^(telegram-expense|statement|payable):[a-f0-9]{64}$/D', $external_ref ) ) ) { return self::error( 'Origem de registro inválida.' ); }
+        if ( $external_ref && ( ! is_string( $external_ref ) || ! preg_match( '/^(telegram-expense|statement|payable|subscription):[a-f0-9]{64}$/D', $external_ref ) ) ) { return self::error( 'Origem de registro inválida.' ); }
         if ( $external_ref ) { $existing = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE user_id=%d AND external_ref=%s", $uid, $external_ref ) ); if ( $existing ) { return self::get_entry( $existing ); } }
         if ( $id && is_wp_error( $old = self::get_entry( $id ) ) ) { return $old; }
         $amount = self::amount( $request->get_param( 'amount' ) ); if ( is_wp_error( $amount ) ) { return $amount; }
@@ -134,7 +134,7 @@ final class PDS_Expenses {
         if ( $owns_transaction ) { $wpdb->query( 'START TRANSACTION' ); }
         $locked = $wpdb->get_row( $wpdb->prepare( "SELECT id,active FROM {$wpdb->prefix}pds_expense_categories WHERE id=%d AND user_id=%d FOR UPDATE", $category_id, $uid ), ARRAY_A );
         if ( ! $locked || ( ! $locked['active'] && ( ! $id || $old['category_id'] !== (int) $category_id ) ) ) { if ( $owns_transaction ) { $wpdb->query( 'ROLLBACK' ); } return self::error( 'A categoria mudou. Atualize a página e escolha novamente.' ); }
-        $source = $external_ref && strpos( $external_ref, 'statement:' ) === 0 ? 'statement' : ( $external_ref && strpos( $external_ref, 'payable:' ) === 0 ? 'payable' : ( $external_ref ? 'telegram' : 'manual' ) );
+        $source = $external_ref && strpos( $external_ref, 'statement:' ) === 0 ? 'statement' : ( $external_ref && strpos( $external_ref, 'payable:' ) === 0 ? 'payable' : ( $external_ref && strpos( $external_ref, 'subscription:' ) === 0 ? 'subscription' : ( $external_ref ? 'telegram' : 'manual' ) ) );
         $ok = $id ? $wpdb->update( $wpdb->prefix . 'pds_expenses', $data, array( 'id' => $id, 'user_id' => $uid ) ) : $wpdb->insert( $wpdb->prefix . 'pds_expenses', $data + array( 'user_id' => $uid, 'created_at' => current_time( 'mysql', true ), 'external_ref' => $external_ref, 'source' => $source ) );
         $saved = $id ?: (int) $wpdb->insert_id;
         if ( false === $ok ) { if ( $owns_transaction ) { $wpdb->query( 'ROLLBACK' ); } if ( $external_ref ) { $duplicate = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE user_id=%d AND external_ref=%s", $uid, $external_ref ) ); if ( $duplicate ) { return self::get_entry( $duplicate ); } } return self::error( 'Não foi possível salvar o gasto.', 500 ); }

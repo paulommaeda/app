@@ -4,6 +4,46 @@ defined( 'ABSPATH' ) || exit;
 final class PDS_Finance_Schema {
     public static function create( $collate ) {
         global $wpdb; $p = $wpdb->prefix;
+        dbDelta( "CREATE TABLE {$p}pds_fin_subscriptions (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            card_id bigint(20) unsigned NOT NULL,
+            category_id bigint(20) unsigned NOT NULL,
+            name varchar(120) NOT NULL,
+            name_key varchar(64) NOT NULL,
+            merchant varchar(180) NOT NULL,
+            match_key varchar(180) NOT NULL,
+            amount decimal(12,2) NOT NULL,
+            billing_day tinyint unsigned NOT NULL,
+            first_month varchar(7) NOT NULL,
+            next_month varchar(7) NOT NULL,
+            status varchar(12) NOT NULL DEFAULT 'active',
+            notes varchar(500) NOT NULL DEFAULT '',
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY user_card_name (user_id,card_id,name_key),
+            KEY user_status (user_id,status)
+        ) ENGINE=InnoDB $collate;" );
+        dbDelta( "CREATE TABLE {$p}pds_fin_subscription_charges (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            subscription_id bigint(20) unsigned NOT NULL,
+            invoice_id bigint(20) unsigned NOT NULL,
+            invoice_month varchar(7) NOT NULL,
+            charge_on date NOT NULL,
+            description varchar(180) NOT NULL,
+            match_key varchar(180) NOT NULL,
+            category_id bigint(20) unsigned NOT NULL,
+            amount decimal(12,2) NOT NULL,
+            status varchar(12) NOT NULL DEFAULT 'planned',
+            expense_id bigint(20) unsigned DEFAULT NULL,
+            created_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY service_month (subscription_id,invoice_month),
+            UNIQUE KEY expense_id (expense_id),
+            KEY invoice_status (user_id,invoice_id,status)
+        ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_splits (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             user_id bigint(20) unsigned NOT NULL,

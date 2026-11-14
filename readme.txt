@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.11.0
+Stable tag: 1.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,6 +39,8 @@ catálogo de serviços, Meu Combustível e Meu Financeiro.
 * Pagamentos parciais de fatura reduzem o saldo da conta sem duplicar o gasto.
 * Divisão opcional de compras entre você e várias pessoas, igual ou por valores.
 * Rateio na compra, na fatura ou na prévia de importação, aplicado às próximas parcelas.
+* Assinaturas mensais do cartão com identificação de serviços e gestão particular.
+* Próxima cobrança prevista após cada fechamento, com conferência sem duplicar o gasto.
 
 == Installation ==
 
@@ -159,6 +161,18 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.12.0 =
+* Área Assinaturas com serviços mensais por cartão, categoria, valor, dia e observações.
+* Identificação de possíveis assinaturas por nome e repetição em faturas diferentes.
+* Ativação a partir de uma compra existente ou cadastro manual, sem recriar meses anteriores.
+* Previsão da próxima cobrança a cada fechamento, com datas específicas da fatura e meses curtos.
+* Ativar, pausar, cancelar, editar e excluir serviços, preservando cobranças e faturas históricas.
+* Importação substitui a previsão pelo valor real, mesmo com reajuste, sem duplicar o lançamento.
+* Confirmação manual da cobrança e remoção de previsões que não aconteceram.
+* Custo mensal e projeção anual; previsões integram faturas, limite e fluxo de caixa previsto.
+* Gastos realizados e saldo bancário só mudam na confirmação e no pagamento correspondentes.
+* Privacidade, isolamento por usuário, transações e atualização nativa incluem assinaturas.
 
 = 1.11.0 =
 * Compras divididas entre duas ou mais pessoas, com participação opcional do titular.

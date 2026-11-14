@@ -58,7 +58,8 @@ final class PDS_Finance_Import {
             foreach ( $found as $candidate ) { $exact = self::normalized( $candidate['description'] ) === self::normalized( $row['description'] ) && $candidate['spent_on'] === $row['spent_on']; if ( $exact || ( $candidate['spent_on'] === $row['spent_on'] && abs( (float) $candidate['amount'] - (float) $row['amount'] ) < 0.005 ) ) { $choice = array( 'id' => (int) $candidate['id'], 'expense_id' => (int) $candidate['expense_id'], 'amount' => (float) $candidate['amount'], 'confirmed' => (bool) $candidate['confirmed'], 'description' => $candidate['description'] ); $candidates[] = $choice; if ( $exact ) { $exact_candidates[] = $choice; } } }
         }
         $match = count( $exact_candidates ) === 1 && ! $exact_candidates[0]['confirmed'] ? $exact_candidates[0]['id'] : 0;
-        return array( 'duplicate' => (bool) $duplicate, 'match_id' => $match, 'candidates' => $candidates, 'possible_duplicate' => ! $match && (bool) $candidates );
+        if ( ! $duplicate ) { $subs = PDS_Finance_Subscriptions::import_candidates( $row, $card_id, $month ); if ( ! $candidates && count( $subs ) === 1 && ! $subs[0]['confirmed'] ) { $match = $subs[0]['id']; } $candidates = array_merge( $candidates, $subs ); }
+        return array( 'subscription_hint' => $row['kind'] === 'charge' && (int) $row['total_installments'] === 1 ? PDS_Finance_Subscriptions::hint( $row['description'] ) : '', 'duplicate' => (bool) $duplicate, 'match_id' => $match, 'candidates' => $candidates, 'possible_duplicate' => ! $match && (bool) $candidates );
     }
     public static function preview( WP_REST_Request $r ) {
         $card = PDS_Finance::find( 'cards', is_scalar( $r->get_param( 'card_id' ) ) ? absint( $r->get_param( 'card_id' ) ) : 0 ); if ( is_wp_error( $card ) ) { return $card; } if ( ! $card['active'] ) { return PDS_Finance::error( 'Selecione um cartão ativo.' ); } $month = $r->get_param( 'month' ); if ( ! PDS_Finance::month( $month ) ) { return PDS_Finance::error( 'Escolha o mês de vencimento da fatura.' ); }
@@ -75,6 +76,7 @@ final class PDS_Finance_Import {
     }
     public static function stage( $parsed, $card, $month, $file_hash ) {
         if ( ! is_array( $parsed['rows'] ?? null ) || ! count( $parsed['rows'] ) || count( $parsed['rows'] ) > self::MAX_ROWS ) { return PDS_Finance::error( 'Não foi possível identificar de 1 a 300 linhas. Use CSV/OFX ou um PDF legível sem senha.' ); }
+        PDS_Finance_Subscriptions::sync_user( get_current_user_id() );
         $rows = self::prepare_rows( $parsed['rows'], $card, $month ); if ( is_wp_error( $rows ) ) { return $rows; } $token = bin2hex( random_bytes( 24 ) ); $hash = hash( 'sha256', $token );
         $job = array( 'user_id' => get_current_user_id(), 'card_id' => (int) $card['id'], 'month' => $month, 'rows' => $rows, 'offset' => 0, 'file_hash' => $file_hash, 'declared_total' => is_numeric( $parsed['invoice_total'] ?? null ) ? (float) $parsed['invoice_total'] : null, 'totals' => array( 'created' => 0, 'matched' => 0, 'credits' => 0, 'skipped' => 0 ), 'errors' => array() );
         $old = get_user_meta( get_current_user_id(), 'pds_fin_import_jobs', true ); $old = is_array( $old ) ? $old : array(); while ( count( $old ) >= 5 ) { delete_transient( 'pds_fin_preview_' . array_shift( $old ) ); } $old[] = $hash; update_user_meta( get_current_user_id(), 'pds_fin_import_jobs', $old ); set_transient( 'pds_fin_preview_' . $hash, $job, 30 * MINUTE_IN_SECONDS );
@@ -109,6 +111,11 @@ final class PDS_Finance_Import {
         if ( $cents < 1 ) { return PDS_Finance::error( 'O gasto precisa ter valor positivo.' ); }
         $i = $row['current_installment']; $n = $row['total_installments']; if ( ! is_scalar( $i ) || ! is_scalar( $n ) || ! preg_match( '/^[0-9]{1,3}$/D', (string) $i ) || ! preg_match( '/^[0-9]{1,3}$/D', (string) $n ) || (int) $i < 1 || (int) $n < (int) $i || (int) $n > 120 ) { return PDS_Finance::error( 'Confira a parcela atual e o total, de 1 a 120.' ); }
         $category = PDS_Expenses::category( is_scalar( $row['category_id'] ) ? absint( $row['category_id'] ) : 0 ); if ( is_wp_error( $category ) ) { return $category; } if ( ! $category['active'] ) { return PDS_Finance::error( 'Escolha uma categoria ativa.' ); }
+        if ( is_string( $row['match_id'] ?? null ) && preg_match( '/^subscription:([1-9][0-9]{0,17})$/D', $row['match_id'], $match ) ) {
+            if ( (int) $i !== 1 || (int) $n !== 1 ) { return PDS_Finance::error( 'Uma assinatura mensal não é um parcelamento.' ); }
+            $input = array( 'amount' => PDS_Finance::decimal( $cents ), 'spent_on' => $date, 'description' => $description, 'category_id' => $category['id'] ); if ( array_key_exists( 'sharing', $row ) ) { $input['sharing'] = self::sharing_from( $row['sharing'], 1 ); }
+            $saved = PDS_Finance_Subscriptions::confirm( (int) $match[1], $input, $row['bank_ref'], (int) $card['id'], $month ); return is_wp_error( $saved ) ? $saved : 'matched';
+        }
         if ( ! empty( $row['match_id'] ) ) {
             if ( ! is_scalar( $row['match_id'] ) ) { return PDS_Finance::error( 'Parcela de conferência inválida.' ); }
             $expense_id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT expense_id FROM {$wpdb->prefix}pds_fin_installments WHERE id=%d AND user_id=%d", $row['match_id'], get_current_user_id() ) );

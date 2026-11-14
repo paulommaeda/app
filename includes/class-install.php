@@ -224,7 +224,7 @@ final class PDS_Install {
             PRIMARY KEY  (user_id),
             KEY expires_at (expires_at)
         ) ENGINE=InnoDB $collate;" );
-        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts', 'pds_expenses', 'pds_expense_categories', 'pds_tg_expense_drafts', 'pds_tg_receipt_drafts', 'pds_fin_accounts', 'pds_fin_people', 'pds_fin_splits', 'pds_fin_account_types', 'pds_fin_transfers', 'pds_fin_receipts', 'pds_fin_cards', 'pds_fin_invoices', 'pds_fin_installments', 'pds_fin_bill_payments', 'pds_fin_adjustments', 'pds_fin_recurring', 'pds_fin_payables', 'pds_tg_payable_drafts' ) as $table ) {
+        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts', 'pds_expenses', 'pds_expense_categories', 'pds_tg_expense_drafts', 'pds_tg_receipt_drafts', 'pds_fin_accounts', 'pds_fin_people', 'pds_fin_splits', 'pds_fin_subscriptions', 'pds_fin_subscription_charges', 'pds_fin_account_types', 'pds_fin_transfers', 'pds_fin_receipts', 'pds_fin_cards', 'pds_fin_invoices', 'pds_fin_installments', 'pds_fin_bill_payments', 'pds_fin_adjustments', 'pds_fin_recurring', 'pds_fin_payables', 'pds_tg_payable_drafts' ) as $table ) {
             $name = $prefix . $table;
             if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $name ) ) ) !== $name ) {
                 return new WP_Error( 'pds_schema', 'Não foi possível criar as tabelas do portal. Verifique as permissões do banco de dados e reative o plugin.' );
@@ -239,5 +239,6 @@ final class PDS_Install {
         wp_clear_scheduled_hook( 'pds_tg_process_queue' );
         wp_clear_scheduled_hook( 'pds_tg_process_once' );
         wp_clear_scheduled_hook( 'pds_finance_planning' );
+        wp_clear_scheduled_hook( 'pds_finance_subscriptions' );
     }
 }

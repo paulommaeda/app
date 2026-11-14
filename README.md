@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.11.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.12.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.11.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.12.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -198,3 +198,23 @@ acordos das anteriores. Uma compra importada na parcela 3/5 divide somente as
 parcelas 3, 4 e 5, sem recriar as anteriores. A prévia só é gravada ao confirmar
 a importação. Os reembolsos ficam em **Recebimentos**, com filtro por pessoa e
 baixa manual. Veja o [manual de cartão compartilhado](docs/CARTAO-COMPARTILHADO.md).
+
+
+## Assinaturas mensais no cartão (1.12.0)
+
+Em **Meu Financeiro → Assinaturas**, cadastre os serviços mensais ou ative as
+sugestões identificadas pelo nome ou por cobranças presentes em várias faturas.
+Uma compra à vista já registrada também tem **Tornar assinatura** nos detalhes
+da fatura. Informe nome, descrição na fatura, cartão, categoria, valor e dia.
+
+As assinaturas ativas geram uma cobrança **prevista** na próxima fatura; a cada
+fechamento, o próximo mês é incluído automaticamente. Importe a fatura ou use
+**Confirmar cobrança** para substituir a previsão por um único gasto realizado.
+Reajustes na importação atualizam a cobrança daquele mês sem duplicação. A sua
+configuração do valor mensal continua disponível para os próximos meses.
+
+Acompanhe custo mensal e projeção anual. Use **Pausar**, **Ativar**, **Cancelar**
+ou **Excluir**, mantendo as cobranças históricas. **Não houve cobrança**, nos
+detalhes da fatura, remove somente aquela previsão. Esses controles organizam
+os registros do portal; o cancelamento com o fornecedor deve ser feito no próprio
+serviço. Consulte o [manual de assinaturas](docs/ASSINATURAS.md).

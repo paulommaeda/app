@@ -259,3 +259,31 @@ Validação em 14 de novembro de 2026. A suíte completa reúne **1.054 verifica
 
 Os cenários usam dados fictícios no WordPress local, sem dados bancários de
 produção ou envio de nomes de participantes para IA.
+
+
+## Assinaturas dos cartões — 1.12.0
+
+Validação em 14 de novembro de 2026. A suíte completa reúne **1.135 verificações**.
+
+* 57 verificações de integração: previsão mensal, limites do cartão, fatura e
+  fluxo de caixa previsto, sem despesas realizadas ou débitos bancários antecipados.
+* Geração idempotente no fechamento, vencimento no mês seguinte, fechamento
+  personalizado e dia de cobrança em meses curtos.
+* Cadastro manual ou por compra identificada, sugestões por nome e repetição,
+  exclusão de parcelamentos, edição, pausa, reativação, cancelamento e exclusão.
+* Importação com preço diferente absorve a previsão; repetição é ignorada;
+  confirmação manual é idempotente; gasto registrado manualmente também reconcilia.
+* Proteção de faturas com pagamentos, preservação de cobranças realizadas,
+  ocorrência não cobrada permanece removida após reativar e recadastro após exclusão.
+* Falha intermediária reverte gasto, parcela e previsão na mesma transação;
+  validação de entradas, isolamento, bloqueio de serviço e privacidade.
+* 24 verificações pelo navegador: identificação, formulário preenchido, custo
+  mensal, fatura prevista, confirmação, gerenciamento do vínculo, cadastro manual,
+  importação com reajuste, pausa/ativação/cancelamento/exclusão e filtros.
+* Área e formulários revisados em 320, 390, 768 e 1440 pixels, sem transbordamento
+  ou erros JavaScript. Atualização nativa preserva também os dois novos cadastros.
+* Regressão completa dos serviços anteriores, incluindo rateio de compras,
+  abastecimentos, Telegram, recebimentos, recorrências e transferências.
+
+Os testes usam serviços e contas fictícias no WordPress local, sem cobrança,
+contato com fornecedores ou acesso a dados bancários de produção.
