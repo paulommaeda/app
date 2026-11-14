@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.10.0
+Stable tag: 1.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,8 @@ catálogo de serviços, Meu Combustível e Meu Financeiro.
 * Crédito à vista ou em até 120 parcelas, distribuídas por fechamento/vencimento.
 * Importação de fatura CSV/OFX e PDF pelo Gemini, com conferência e parcelas futuras.
 * Pagamentos parciais de fatura reduzem o saldo da conta sem duplicar o gasto.
+* Divisão opcional de compras entre você e várias pessoas, igual ou por valores.
+* Rateio na compra, na fatura ou na prévia de importação, aplicado às próximas parcelas.
 
 == Installation ==
 
@@ -157,6 +159,16 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.11.0 =
+* Compras divididas entre duas ou mais pessoas, com participação opcional do titular.
+* Divisão igual ou por valores, gerando apenas os recebimentos devidos por outras pessoas.
+* Compra de R$ 500 em 5 vezes dividida pela metade gera cinco recebimentos de R$ 50.
+* Botão Dividir compra nas faturas e na prévia editável de importação.
+* Aplicação a partir da parcela escolhida, mantendo os acordos das parcelas anteriores.
+* Importações seguintes mantêm a proporção e atualizam as previsões sem duplicação.
+* Distribuição exata dos centavos por parcela e pessoa, com proteção dos valores já recebidos.
+* Mesma opção do WordPress, usuários, faturas e totais do dashboard preservados.
 
 = 1.10.0 =
 * Fatura de cartão compartilhada opcional, ativada nas configurações do WordPress.

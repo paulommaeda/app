@@ -233,3 +233,29 @@ Validação em 13 de novembro de 2026. A suíte completa reúne **987 verificaç
 
 Os testes usam contas e pessoas fictícias no WordPress local, sem movimentações
 bancárias ou envio de nomes para reconhecimento por IA.
+
+
+## Divisão de compras entre várias pessoas — 1.11.0
+
+Validação em 14 de novembro de 2026. A suíte completa reúne **1.054 verificações**.
+
+* 45 verificações de integração: compra de R$ 500/5 com metade do titular e metade
+  de Isabela, três participantes, ausência do titular e valores personalizados.
+* Distribuição exata dos centavos por parcela e por pessoa, valores pequenos e
+  grandes, pessoas repetidas/de outro usuário e somas inválidas.
+* Novo acordo a partir da parcela 3/5, preservação de parcelas anteriores pendentes
+  e recebidas, proteção de baixas e remoção do acordo somente nas parcelas futuras.
+* Importação CSV nova e reconciliada com rateio imediato, manutenção nas importações
+  seguintes, previsões sem duplicação e vencimentos das faturas efetivas.
+* Isolamento, opção desativada, esquema e índice idempotentes, falha intermediária
+  com rollback, exportação/apagamento e compatibilidade com atribuições antigas.
+* 22 verificações pelo navegador: divisão igual/personalizada, vários nomes,
+  edição pela fatura, divisão na prévia, preservação das demais edições, confirmação
+  de importação, reconciliação e proporção mantida na importação seguinte.
+* Formulários em 320, 390, 768 e 1440 pixels, com revisão visual no celular e
+  computador e sem erros JavaScript. Histórico importado legível em telas estreitas.
+* Regressão dos serviços anteriores e atualização nativa preservando todas as
+  tabelas financeiras, divisões, usuários e configurações existentes.
+
+Os cenários usam dados fictícios no WordPress local, sem dados bancários de
+produção ou envio de nomes de participantes para IA.

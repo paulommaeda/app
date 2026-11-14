@@ -18,3 +18,5 @@
 <?php include PDS_DIR . 'templates/account-types.php'; ?>
 
 <?php if ( PDS_Finance_Sharing::enabled() ) { include PDS_DIR . 'templates/people.php'; } ?>
+
+<dialog id="pds-allocation-dialog" class="pds-dialog" aria-labelledby="pds-allocation-title"><div class="pds-dialog-heading"><h2 id="pds-allocation-title">Dividir compra</h2><button type="button" class="pds-icon-button" data-allocation-close aria-label="Fechar divisão">×</button></div><form id="pds-allocation-form" class="pds-form"><div class="pds-form-error pds-alert" role="alert" hidden></div><p id="pds-allocation-description" class="pds-finance-note"></p><div id="pds-allocation-fields"></div><button type="submit" class="pds-button pds-button-wide">Salvar divisão</button></form></dialog>

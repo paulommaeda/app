@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.10.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.11.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.10.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.11.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -178,15 +178,23 @@ pagamento foi feito**. Para corrigir depois, use **Alterar data do pagamento** n
 conta paga ou **Alterar data** no pagamento da fatura. O vencimento original e o
 valor ficam preservados. Veja [as regras financeiras](docs/FINANCEIRO.md).
 
-## Fatura de cartão compartilhada opcional (1.10.0)
+## Compras divididas e cartão compartilhado (1.11.0)
 
 Ative **Fatura de cartão compartilhada** no painel **WordPress → Portal de
 Serviços**. Cada usuário poderá cadastrar nomes em **Meu Financeiro → Pessoas**.
-Ao registrar/editar uma compra no crédito, marque **Este gasto é de outra pessoa**,
-escolha quem usou o cartão e mantenha o parcelamento habitual.
+Ao registrar/editar uma compra no crédito, marque **Este gasto é de outra pessoa
+ou será dividido** e escolha: uma pessoa paga tudo, dividir igualmente ou definir
+valores por pessoa. Marque **Eu também participo da divisão** para incluir sua parte.
 
-Uma compra de **R$ 200 em 4 vezes**, atribuída à **Isabela Maeda**, permanece na
-fatura normal e gera **quatro recebimentos previstos de R$ 50**, um em cada
-vencimento da fatura. O dashboard mantém todos os gastos juntos. Os reembolsos
-ficam em **Recebimentos**, com filtro por pessoa e baixa manual. Veja o
-[manual de cartão compartilhado](docs/CARTAO-COMPARTILHADO.md).
+Uma compra de **R$ 500 em 5 vezes**, dividida igualmente entre você e **Isabela
+Maeda**, permanece com cinco parcelas de R$ 100 na fatura e gera **cinco
+recebimentos previstos de R$ 50** para Isabela, nos vencimentos correspondentes.
+É possível adicionar outras pessoas e atribuir valores diferentes a cada uma.
+O dashboard mantém todos os gastos juntos. A sua parte não gera recebimento.
+
+Use **Dividir compra** na linha da fatura ou na prévia da importação. Escolha a
+parcela inicial; as seguintes adotam a divisão automaticamente, preservando os
+acordos das anteriores. Uma compra importada na parcela 3/5 divide somente as
+parcelas 3, 4 e 5, sem recriar as anteriores. A prévia só é gravada ao confirmar
+a importação. Os reembolsos ficam em **Recebimentos**, com filtro por pessoa e
+baixa manual. Veja o [manual de cartão compartilhado](docs/CARTAO-COMPARTILHADO.md).

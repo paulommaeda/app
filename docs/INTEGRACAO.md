@@ -353,8 +353,8 @@ pelo autor de um abastecimento. A resposta do gasto inclui `person_id` e
 
 Recebimentos automáticos usam `source=shared_card`, `person_id`,
 `shared_expense_id`, `shared_installment_no`, `shared_installment_total`,
-`shared_planned_amount` e `shared_planned_on`. O índice único por compra/parcela
-impede duplicação. A conta inicial é `account_id=0` enquanto não recebido.
+`shared_planned_amount` e `shared_planned_on`. O índice único por compra/pessoa/parcela
+impede duplicação, incluindo compras com vários participantes. A conta inicial é `account_id=0` enquanto não recebido.
 `GET /finance/receipts` aceita `person_id` opcional (sempre próprio), usa junção
 opcional de conta e retorna `pending_total` e `total_count` do período filtrado.
 
@@ -369,3 +369,57 @@ nome da previsão são controlados pelo servidor. `DELETE /finance/receipts/{id}
 cancela um reembolso vinculado, mantendo sua identidade para não recriá-lo. Os
 campos enviados pelo cliente não podem forjar esses vínculos. Desativar a opção
 bloqueia novas atribuições, preservando manutenção e baixa dos registros antigos.
+
+
+## Divisão entre vários participantes — 1.11.0
+
+As mesmas rotas de gastos aceitam `sharing` como objeto ou JSON (até 12.000
+caracteres). O campo legado `person_id` continua válido para atribuições integrais;
+em compras com divisão registrada, clientes antigos que omitem `sharing`
+preservam a divisão existente. `person_name` lista todos os participantes e
+`sharing_context` contém o acordo e as parcelas reais para edição.
+
+Exemplo para metade sua e metade da pessoa 17, em uma compra de R$ 500/5:
+
+```json
+{
+  "sharing": {
+    "mode": "equal",
+    "include_owner": true,
+    "start_installment": 1,
+    "people": [{"person_id": 17}]
+  }
+}
+```
+
+Modos: `none`, `single` (usa `person_id`), `equal` e `amounts`. Em `amounts`,
+cada item de `people` tem `person_id` e `amount` monetário; a base é a soma das
+parcelas a partir de `start_installment`. Com `include_owner=true`, a diferença
+é a parte do autor; caso contrário, a soma deve fechar com a base. Pessoas devem
+ser próprias, diferentes e ativas (arquivadas são aceitas somente para manter
+vínculos existentes). Há até 20 pessoas externas por compra.
+
+* `GET /pds/v1/finance/expenses/{id}/sharing?start_installment=3`: contexto próprio,
+  com descrição, primeira parcela existente, parcela inicial, quantidade total,
+  valor restante, parcelas efetivas e divisão proporcional.
+* `PUT /pds/v1/finance/expenses/{id}/sharing`: recebe `sharing` e atualiza somente
+  o acordo e os reembolsos. Não altera os valores das parcelas ou da compra.
+
+Ambas as rotas exigem a permissão financeira, autenticação e propriedade. Novas
+divisões exigem `shared_card` ativado. A prévia de importação aceita `sharing`
+em cada edição; candidatos de reconciliação incluem `expense_id`. A confirmação
+aplica o acordo à parcela importada e às seguintes na mesma transação.
+
+`pds_fin_splits` armazena os pesos por compra/pessoa; `person_id=0` representa o
+autor e não gera reembolso. Gastos incluem `sharing_mode` e `sharing_start`.
+Recebimentos incluem `shared_invoice_amount`, o valor bruto da parcela de origem.
+A migração substitui o índice antigo `shared_part` por `shared_person_part`
+(compra, pessoa, parcela) e preenche a base dos reembolsos legados sem criar
+novos usuários ou alterar valores. As operações de esquema são idempotentes.
+
+A distribuição usa centavos inteiros e maiores restos, com desempate por ID.
+Conserva os totais de cada parcela e de cada pessoa, evitando arredondamentos
+acumulados. A partir de um novo acordo, parcelas anteriores mantêm seus vínculos.
+Mudanças que invalidem reembolsos já recebidos retornam 409 e revertem toda a
+operação; é possível escolher uma parcela posterior como início do novo acordo.
+Divisões e campos adicionais integram exportação/apagamento e atualização nativa.

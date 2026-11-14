@@ -95,7 +95,7 @@ final class PDS_Expenses {
     private static function cast( $row ) {
         foreach ( array( 'id', 'category_id' ) as $key ) { $row[ $key ] = (int) $row[ $key ]; }
         foreach ( array( 'account_id', 'card_id', 'installments', 'installment_start' ) as $key ) { $row[ $key ] = (int) $row[ $key ]; }
-        $row['person_id'] = $row['person_id'] ? (int) $row['person_id'] : null; $row['person_name'] = PDS_Finance_Sharing::name( $row['person_id'], (int) $row['user_id'] );
+        $row['person_id'] = $row['person_id'] ? (int) $row['person_id'] : null; $row['person_name'] = PDS_Finance_Splits::names( $row, (int) $row['user_id'] );
         $row['payable_id'] = $row['payable_id'] ? (int) $row['payable_id'] : null;
         $row['fuel_record_id'] = $row['fuel_record_id'] ? (int) $row['fuel_record_id'] : null;
         $row['amount'] = (float) $row['amount']; $row['category_active'] = (bool) $row['category_active']; unset( $row['user_id'], $row['external_ref'] ); return $row;
@@ -104,7 +104,7 @@ final class PDS_Expenses {
     public static function get_entry( $id ) {
         global $wpdb;
         $row = $wpdb->get_row( $wpdb->prepare( "SELECT e.*,c.name AS category_name,c.color AS category_color,c.active AS category_active FROM {$wpdb->prefix}pds_expenses e INNER JOIN {$wpdb->prefix}pds_expense_categories c ON c.id=e.category_id AND c.user_id=e.user_id WHERE e.id=%d AND e.user_id=%d", $id, get_current_user_id() ), ARRAY_A );
-        return $row ? self::cast( $row ) : self::error( 'Gasto não encontrado ou sem acesso.', 404 );
+        if ( ! $row ) { return self::error( 'Gasto não encontrado ou sem acesso.', 404 ); } $result = self::cast( $row ); if ( $row['card_id'] && ( PDS_Finance_Sharing::enabled() || $row['person_id'] || $row['sharing_mode'] ) ) { $result['sharing_context'] = PDS_Finance_Splits::context( $row, get_current_user_id() ); } return $result;
     }
     public static function entry( WP_REST_Request $request ) { return self::get_entry( absint( $request['id'] ) ); }
 
@@ -138,6 +138,7 @@ final class PDS_Expenses {
         $ok = $id ? $wpdb->update( $wpdb->prefix . 'pds_expenses', $data, array( 'id' => $id, 'user_id' => $uid ) ) : $wpdb->insert( $wpdb->prefix . 'pds_expenses', $data + array( 'user_id' => $uid, 'created_at' => current_time( 'mysql', true ), 'external_ref' => $external_ref, 'source' => $source ) );
         $saved = $id ?: (int) $wpdb->insert_id;
         if ( false === $ok ) { if ( $owns_transaction ) { $wpdb->query( 'ROLLBACK' ); } if ( $external_ref ) { $duplicate = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE user_id=%d AND external_ref=%s", $uid, $external_ref ) ); if ( $duplicate ) { return self::get_entry( $duplicate ); } } return self::error( 'Não foi possível salvar o gasto.', 500 ); }
+        $split = PDS_Finance_Splits::persist( $saved, $uid, $finance ); if ( is_wp_error( $split ) ) { if ( $owns_transaction ) { $wpdb->query( 'ROLLBACK' ); } return $split; }
         $scheduled = PDS_Finance::save_schedule( $saved, $uid, $finance, $id ? $old : null, $amount, $date, $options ); if ( is_wp_error( $scheduled ) ) { if ( $owns_transaction ) { $wpdb->query( 'ROLLBACK' ); } return $scheduled; }
         if ( $owns_transaction ) { $wpdb->query( 'COMMIT' ); } $result = self::get_entry( $saved );
         if ( $owns_transaction && ! is_wp_error( $result ) ) { do_action( $id ? 'pds_expense_updated' : 'pds_expense_created', $result, $uid ); }

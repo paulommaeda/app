@@ -46,39 +46,13 @@ final class PDS_Finance_Sharing {
         return ! $person['active'] && $id !== $previous ? PDS_Finance::error( 'Escolha uma pessoa ativa.', 409 ) : $id;
     }
     /** The caller owns the expense transaction and its row lock. */
-    public static function sync( $expense_id, $uid ) {
-        global $wpdb;
-        $expense = $wpdb->get_row( $wpdb->prepare( "SELECT id,person_id,description,card_id FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d FOR UPDATE", $expense_id, $uid ), ARRAY_A );
-        if ( ! $expense || $wpdb->last_error ) { return PDS_Finance::error( 'Não foi possível conferir o gasto compartilhado.', 500 ); }
-        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_receipts WHERE shared_expense_id=%d AND user_id=%d ORDER BY shared_installment_no FOR UPDATE", $expense_id, $uid ), ARRAY_A );
-        if ( $wpdb->last_error ) { return PDS_Finance::error( 'Não foi possível conferir os recebimentos do cartão.', 500 ); }
-        $parts = array();
-        if ( $expense['person_id'] ) {
-            $person = self::person( $expense['person_id'], $uid ); if ( ! $person ) { return PDS_Finance::error( 'A pessoa desse gasto não foi encontrada.', 409 ); }
-            if ( ! $rows && ( ! self::enabled() || ! $person['active'] ) ) { return PDS_Finance::error( 'Ative o compartilhamento e escolha uma pessoa ativa.', 409 ); }
-            $schedule = $wpdb->get_results( $wpdb->prepare( "SELECT s.installment_no,s.installment_total,s.amount,i.due_on FROM {$wpdb->prefix}pds_fin_installments s INNER JOIN {$wpdb->prefix}pds_fin_invoices i ON i.id=s.invoice_id AND i.user_id=s.user_id WHERE s.expense_id=%d AND s.user_id=%d ORDER BY s.installment_no", $expense_id, $uid ), ARRAY_A );
-            if ( ! $schedule || $wpdb->last_error ) { return PDS_Finance::error( 'O gasto compartilhado precisa de parcelas na fatura.', 409 ); }
-            foreach ( $schedule as $part ) { $parts[ (int) $part['installment_no'] ] = $part; }
-        }
-        foreach ( $rows as $row ) {
-            $part = $parts[ (int) $row['shared_installment_no'] ] ?? null;
-            if ( 'received' === $row['status'] && ( ! $part || (int) $row['person_id'] !== (int) $expense['person_id'] || (string) $row['shared_planned_amount'] !== (string) $part['amount'] || $row['shared_planned_on'] !== $part['due_on'] || (int) $row['shared_installment_total'] !== (int) $part['installment_total'] ) ) { return PDS_Finance::error( 'Já há reembolso recebido para esta compra. Reverta o recebimento antes de alterar pessoa, parcelas, valores ou vencimentos.', 409 ); }
-        }
-        $existing = array_column( $rows, null, 'shared_installment_no' ); $now = current_time( 'mysql', true );
-        foreach ( $rows as $row ) { if ( ! isset( $parts[ (int) $row['shared_installment_no'] ] ) && false === $wpdb->delete( $wpdb->prefix . 'pds_fin_receipts', array( 'id' => $row['id'], 'user_id' => $uid ) ) ) { return PDS_Finance::error( 'Não foi possível atualizar os reembolsos.', 500 ); } }
-        foreach ( $parts as $no => $part ) {
-            $old = $existing[ $no ] ?? null; if ( $old && 'received' === $old['status'] ) { continue; }
-            $data = array( 'person_id' => (int) $expense['person_id'], 'shared_installment_total' => (int) $part['installment_total'], 'shared_planned_amount' => $part['amount'], 'shared_planned_on' => $part['due_on'], 'amount' => $part['amount'], 'received_on' => $part['due_on'], 'description' => mb_substr( 'Reembolso · ' . $expense['description'], 0, 150 ) . ' · ' . $no . '/' . $part['installment_total'], 'updated_at' => $now );
-            $ok = $old ? $wpdb->update( $wpdb->prefix . 'pds_fin_receipts', $data, array( 'id' => $old['id'], 'user_id' => $uid ) ) : $wpdb->insert( $wpdb->prefix . 'pds_fin_receipts', $data + array( 'user_id' => $uid, 'account_id' => 0, 'status' => 'pending', 'notes' => '', 'source' => 'shared_card', 'shared_expense_id' => $expense_id, 'shared_installment_no' => $no, 'created_at' => $now ) );
-            if ( false === $ok ) { return PDS_Finance::error( 'Não foi possível gerar todos os recebimentos. Tente novamente.', 500 ); }
-        }
-        return true;
-    }
+    public static function sync( $expense_id, $uid ) { return PDS_Finance_Splits::sync( $expense_id, $uid ); }
     public static function detach( $expense_id, $uid ) {
         global $wpdb; $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d FOR UPDATE", $expense_id, $uid ) );
         $rows = $wpdb->get_results( $wpdb->prepare( "SELECT id,status FROM {$wpdb->prefix}pds_fin_receipts WHERE shared_expense_id=%d AND user_id=%d FOR UPDATE", $expense_id, $uid ), ARRAY_A );
         if ( $wpdb->last_error ) { return PDS_Finance::error( 'Não foi possível conferir os reembolsos.', 500 ); }
         foreach ( $rows as $row ) { if ( 'received' === $row['status'] ) { return PDS_Finance::error( 'Reverta os reembolsos recebidos antes de excluir esta compra.', 409 ); } }
+        if ( false === $wpdb->delete( $wpdb->prefix . 'pds_fin_splits', array( 'expense_id' => $expense_id, 'user_id' => $uid ) ) ) { return PDS_Finance::error( 'Não foi possível remover a divisão.', 500 ); }
         return false === $wpdb->delete( $wpdb->prefix . 'pds_fin_receipts', array( 'shared_expense_id' => $expense_id, 'user_id' => $uid ) ) ? PDS_Finance::error( 'Não foi possível remover as previsões da compra.', 500 ) : true;
     }
     private static function fail( $message, $status = 500 ) { global $wpdb; $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( $message, $status ); }

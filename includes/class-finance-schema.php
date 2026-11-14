@@ -4,6 +4,16 @@ defined( 'ABSPATH' ) || exit;
 final class PDS_Finance_Schema {
     public static function create( $collate ) {
         global $wpdb; $p = $wpdb->prefix;
+        dbDelta( "CREATE TABLE {$p}pds_fin_splits (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            expense_id bigint(20) unsigned NOT NULL,
+            person_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            weight bigint(20) unsigned NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY expense_person (expense_id,person_id),
+            KEY user_id (user_id)
+        ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_people (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             user_id bigint(20) unsigned NOT NULL,
@@ -75,6 +85,7 @@ final class PDS_Finance_Schema {
             shared_installment_total smallint unsigned DEFAULT NULL,
             shared_planned_amount decimal(12,2) DEFAULT NULL,
             shared_planned_on date DEFAULT NULL,
+            shared_invoice_amount decimal(12,2) DEFAULT NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
@@ -82,7 +93,7 @@ final class PDS_Finance_Schema {
             KEY account_id (account_id),
             UNIQUE KEY external_ref (external_ref),
             UNIQUE KEY recurring_month (recurring_id,occurrence_month),
-            UNIQUE KEY shared_part (shared_expense_id,shared_installment_no),
+            UNIQUE KEY shared_person_part (shared_expense_id,person_id,shared_installment_no),
             KEY user_person (user_id,person_id,received_on)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_cards (
@@ -198,5 +209,9 @@ final class PDS_Finance_Schema {
             UNIQUE KEY expense_id (expense_id),
             UNIQUE KEY external_ref (external_ref)
         ) ENGINE=InnoDB $collate;" );
+        // dbDelta adds indexes but does not remove the former one-person uniqueness rule.
+        $old_index = $wpdb->get_var( "SHOW INDEX FROM {$p}pds_fin_receipts WHERE Key_name='shared_part'" );
+        if ( $old_index ) { $wpdb->query( "ALTER TABLE {$p}pds_fin_receipts DROP INDEX shared_part" ); }
+        $wpdb->query( "UPDATE {$p}pds_fin_receipts r INNER JOIN {$p}pds_fin_installments s ON s.expense_id=r.shared_expense_id AND s.installment_no=r.shared_installment_no AND s.user_id=r.user_id SET r.shared_invoice_amount=s.amount WHERE r.shared_expense_id IS NOT NULL AND r.shared_invoice_amount IS NULL" );
     }
 }
