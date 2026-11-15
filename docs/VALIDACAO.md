@@ -341,3 +341,35 @@ Validação em 15 de novembro de 2026. A suíte completa reúne **1.292 verifica
 
 Os testes usam dados fictícios no WordPress local, sem acesso a contas bancárias
 ou alteração de registros de produção.
+
+# Validação da versão 1.15.0
+
+Validação em WordPress 7.1.4, PHP 8.4 e MariaDB 11.8. A suíte completa reúne
+**1.362 verificações em 36 suítes**, incluindo as verificações anteriores de
+cadastro, atualização nativa, combustível, Telegram, despesas, cartões, importação,
+recebimentos, recorrências, transferências, tipos de conta, compartilhamento,
+assinaturas, extratos e dashboard mensal por parcelas.
+
+Novas verificações específicas:
+
+- **38 verificações de API/banco** para edição e exclusão de contas a pagar.
+- **32 verificações de navegador** para os formulários e fluxos completos.
+- Correções de valor, descrição, vencimento, categoria, conta e observações.
+- Edição de contas canceladas sem reabertura ou realização automática.
+- Separação entre previsão e pagamento realizado, preservando o mesmo gasto.
+- Troca de conta de pagamento com restauração do saldo anterior e débito correto.
+- Exclusão de conta paga com remoção do gasto e recomposição do saldo.
+- Correção e exclusão de baixa no crédito com atualização da fatura correspondente.
+- Proteções de faturas já pagas e reversão completa após falhas de banco injetadas.
+- Edição de uma ocorrência ou desta e das próximas pendentes a partir do mês escolhido.
+- Exclusão de uma ocorrência ou das próximas não pagas, preservando pagamentos.
+- Marcadores de exclusão impedem recriação pelo cron ou reenvio do Telegram.
+- Datas de meses curtos preservam o dia 31 ancorado na definição recorrente.
+- Isolamento por usuário, serviço bloqueado, confirmação e escopos inválidos.
+- Fechar a confirmação preserva a conta; exclusões somem também do filtro canceladas.
+- Formulário de conta paga e ações ajustados em 320, 390, 768 e 1.440 pixels.
+- Faturas automáticas continuam editadas por seus lançamentos e pagamentos de origem.
+
+O ZIP canônico contém somente o plugin, seus recursos e documentação. O teste de
+atualização usa Plugin_Upgrader real e confere o hash do pacote. Não contém o
+ambiente de testes, credenciais ou dados usados na validação.

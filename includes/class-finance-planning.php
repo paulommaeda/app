@@ -12,7 +12,7 @@ final class PDS_Finance_Planning {
     public static function routes() {
         foreach ( array(
             '/finance/payables' => array( 'GET' => 'payables', 'POST' => 'save_payable' ),
-            '/finance/payables/(?P<id>\d+)' => array( 'GET' => 'payable', 'PUT' => 'save_payable', 'DELETE' => 'cancel_payable' ),
+            '/finance/payables/(?P<id>\d+)' => array( 'GET' => 'payable', 'PUT' => 'save_payable', 'DELETE' => 'delete_payable' ),
             '/finance/payables/(?P<id>\d+)/pay' => array( 'POST' => 'pay' ),
             '/finance/payables/(?P<id>\d+)/reopen' => array( 'POST' => 'reopen' ),
             '/finance/recurring' => array( 'GET' => 'recurring' ),
@@ -26,7 +26,7 @@ final class PDS_Finance_Planning {
     private static function id( $r ) { return absint( $r->get_url_params()['id'] ?? 0 ); }
     public static function find( $table, $id, $uid = 0, $lock = false ) {
         global $wpdb; if ( ! in_array( $table, array( 'payables', 'recurring' ), true ) ) { return PDS_Finance::error( 'Previsão inválida.' ); }
-        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_{$table} WHERE id=%d AND user_id=%d" . ( $lock ? ' FOR UPDATE' : '' ), $id, $uid ?: get_current_user_id() ), ARRAY_A );
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_{$table} WHERE id=%d AND user_id=%d" . ( 'payables' === $table ? " AND status<>'deleted'" : '' ) . ( $lock ? ' FOR UPDATE' : '' ), $id, $uid ?: get_current_user_id() ), ARRAY_A );
         return $row ?: PDS_Finance::error( 'Previsão não encontrada ou sem acesso.', 404 );
     }
     public static function positive_id( $v, $optional = false ) {
@@ -52,19 +52,19 @@ final class PDS_Finance_Planning {
         if ( $end && ! PDS_Finance::month( $end ) ) { return PDS_Finance::error( 'O término da recorrência ultrapassa o período permitido.' ); }
         return array( 'mode' => $mode, 'day' => (int) $day, 'count' => $n, 'end' => $end );
     }
-    private static function clean( $r, $kind ) {
+    private static function clean( $r, $kind, $old = null ) {
         $description = self::text( $r, 'description', 180, true ); $notes = self::text( $r, 'notes', 500 );
         $date = $r->get_param( 'receipt' === $kind ? 'received_on' : 'due_on' );
         $raw = $r->get_param( 'amount' ); $amount = 'payable' === $kind && in_array( $raw, array( null, '' ), true ) ? null : PDS_Expenses::amount( $raw );
         foreach ( array( $description, $notes, $amount ) as $v ) { if ( is_wp_error( $v ) ) { return $v; } }
         if ( ! PDS_Expenses::valid_date( $date ) || ! PDS_Finance::month( substr( $date, 0, 7 ) ) ) { return PDS_Finance::error( 'Informe uma data válida para o vencimento ou recebimento previsto.' ); }
         $account_id = self::positive_id( $r->get_param( 'account_id' ), 'payable' === $kind ); if ( is_wp_error( $account_id ) ) { return $account_id; }
-        if ( $account_id ) { $account = PDS_Finance::find( 'accounts', $account_id ); if ( is_wp_error( $account ) ) { return $account; } if ( ! $account['active'] ) { return PDS_Finance::error( 'Escolha uma conta ativa.' ); } }
+        if ( $account_id ) { $account = PDS_Finance::find( 'accounts', $account_id ); if ( is_wp_error( $account ) ) { return $account; } if ( ! $account['active'] && (int) ( $old['account_id'] ?? 0 ) !== $account_id ) { return PDS_Finance::error( 'Escolha uma conta ativa.' ); } }
         $category_id = 0;
         if ( 'payable' === $kind ) {
             $category_id = self::positive_id( $r->get_param( 'category_id' ), true ); if ( is_wp_error( $category_id ) ) { return $category_id; }
             if ( ! $category_id ) { foreach ( PDS_Expenses::category_list() as $c ) { if ( in_array( $c['name'], array( 'Contas e serviços', 'Outros' ), true ) ) { $category_id = $c['id']; if ( 'Contas e serviços' === $c['name'] ) { break; } } } }
-            $category = PDS_Expenses::category( $category_id ); if ( is_wp_error( $category ) ) { return $category; } if ( ! $category['active'] ) { return PDS_Finance::error( 'Escolha uma categoria ativa.' ); }
+            $category = PDS_Expenses::category( $category_id ); if ( is_wp_error( $category ) ) { return $category; } if ( ! $category['active'] && (int) ( $old['category_id'] ?? 0 ) !== $category_id ) { return PDS_Finance::error( 'Escolha uma categoria ativa.' ); }
         }
         $repeat = self::recurrence( $r, $date ); if ( is_wp_error( $repeat ) ) { return $repeat; }
         return array( 'description' => $description, 'notes' => $notes, 'amount' => $amount, 'due_on' => $date, 'account_id' => $account_id, 'category_id' => $category_id, '_repeat' => $repeat );
@@ -86,13 +86,53 @@ final class PDS_Finance_Planning {
         if ( $saved = self::existing( 'payable', $external_ref ) ) { return $saved; }
         global $wpdb; $uid = get_current_user_id(); $id = self::id( $r );
         $old = $id ? self::find( 'payables', $id ) : null; if ( is_wp_error( $old ) ) { return $old; }
-        if ( $old && 'paid' === $old['status'] ) { return PDS_Finance::error( 'Desfaça a baixa antes de corrigir essa conta.', 409 ); }
-        $clean = self::clean( $r, 'payable' ); if ( is_wp_error( $clean ) ) { return $clean; }
+        $scope = $r->get_param( 'scope' ) ?? 'single'; if ( ! in_array( $scope, array( 'single', 'following' ), true ) || ( ! $id && 'single' !== $scope ) ) { return PDS_Finance::error( 'Escolha somente esta conta ou esta e as próximas.' ); }
+        if ( $old && 'following' === $scope ) {
+            if ( ! $old['recurring_id'] || 'pending' !== $old['status'] ) { return PDS_Finance::error( 'A edição das próximas contas deve partir de uma ocorrência recorrente pendente.', 409 ); }
+            $series_request = new WP_REST_Request( 'PUT' ); $series_request->set_url_params( array( 'id' => (int) $old['recurring_id'] ) );
+            $params = $r->get_params(); unset( $params['id'] ); $params['from_payable_id'] = $id;
+            if ( ! PDS_Expenses::valid_date( $params['due_on'] ?? '' ) || substr( $params['due_on'], 0, 7 ) !== $old['occurrence_month'] ) { return PDS_Finance::error( 'Para mudar o mês de vencimento, escolha Somente esta conta. Nas próximas, ajuste o dia dentro do mês da ocorrência.' ); }
+            $series = self::find( 'recurring', $old['recurring_id'] ); if ( is_wp_error( $series ) ) { return $series; }
+            // Keeping a February/short-month date must not replace an anchored day 31 with day 28/30.
+            $params['billing_day'] = $params['billing_day'] ?? ( $params['due_on'] === $old['due_on'] ? (int) $series['due_day'] : (int) substr( $params['due_on'], 8, 2 ) ); $series_request->set_body_params( $params ); return self::edit_recurring( $series_request );
+        }
+        if ( $old && 'paid' === $old['status'] && ( ! $r->has_param( 'actual_amount' ) || ! $r->has_param( 'paid_on' ) ) ) { return PDS_Finance::error( 'Para editar a conta paga, confira também o valor e a data do pagamento realizado.', 409 ); }
+        $clean = self::clean( $r, 'payable', $old ); if ( is_wp_error( $clean ) ) { return $clean; }
         if ( ! $id && 'monthly' === $clean['_repeat']['mode'] ) { return self::create_recurring( 'payable', $clean, $external_ref ); }
         unset( $clean['_repeat'] ); $clean['updated_at'] = current_time( 'mysql', true );
+        if ( $id ) {
+            if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return PDS_Finance::error( 'Não foi possível editar a conta.', 500 ); }
+            $locked = self::find( 'payables', $id, $uid, true );
+            if ( is_wp_error( $locked ) || $locked['status'] !== $old['status'] || $locked['expense_id'] !== $old['expense_id'] ) { return self::rollback( PDS_Finance::error( 'Esta conta mudou. Atualize a lista e tente novamente.', 409 ) ); }
+            $saved = null;
+            if ( 'paid' === $locked['status'] ) { $saved = self::correct_payment( $r, $locked, $clean ); if ( is_wp_error( $saved ) ) { return self::rollback( $saved ); } }
+            if ( false === $wpdb->update( $wpdb->prefix . 'pds_fin_payables', $clean, array( 'id' => $id, 'user_id' => $uid ) ) || false === $wpdb->query( 'COMMIT' ) ) { return self::rollback( PDS_Finance::error( 'Não foi possível salvar a conta.', 500 ) ); }
+            if ( $saved ) { do_action( 'pds_expense_updated', $saved, $uid ); }
+            return array( 'id' => $id, 'recurring_id' => $old['recurring_id'] ? (int) $old['recurring_id'] : null, 'expense_id' => $saved['id'] ?? null );
+        }
         $ok = $id ? $wpdb->update( $wpdb->prefix . 'pds_fin_payables', $clean, array( 'id' => $id, 'user_id' => $uid, 'status' => $old['status'] ) ) : $wpdb->insert( $wpdb->prefix . 'pds_fin_payables', $clean + array( 'user_id' => $uid, 'status' => 'pending', 'source' => $external_ref ? 'telegram' : 'manual', 'external_ref' => $external_ref, 'created_at' => current_time( 'mysql', true ) ) );
         if ( false === $ok ) { return self::existing( 'payable', $external_ref ) ?: PDS_Finance::error( 'Não foi possível cadastrar a conta.', 500 ); }
         return array( 'id' => $id ?: (int) $wpdb->insert_id, 'recurring_id' => $old['recurring_id'] ?? null );
+    }
+    private static function rollback( $error ) { global $wpdb; $wpdb->query( 'ROLLBACK' ); return $error; }
+    /** Updates the existing settlement inside the payable transaction, preserving its identity. */
+    private static function correct_payment( $r, $bill, $clean ) {
+        global $wpdb; $uid = get_current_user_id();
+        $locked = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d AND payable_id=%d FOR UPDATE", $bill['expense_id'], $uid, $bill['id'] ) );
+        if ( ! $locked ) { return PDS_Finance::error( 'O pagamento desta conta não foi encontrado. Atualize a lista.', 409 ); }
+        $old = PDS_Expenses::get_entry( $locked ); if ( is_wp_error( $old ) ) { return $old; }
+        $method = $r->get_param( 'payment_method' ) ?? $old['payment_method']; $paid_on = $r->get_param( 'paid_on' );
+        if ( ! is_string( $method ) || '' === $method || ! isset( PDS_Expenses::PAYMENTS[ $method ] ) || ! PDS_Expenses::valid_date( $paid_on ) || $paid_on > current_time( 'Y-m-d' ) ) { return PDS_Finance::error( 'Confira a forma e a data real do pagamento, até hoje.' ); }
+        $account_id = 0;
+        if ( 'credit' !== $method ) {
+            $account_id = self::positive_id( $r->get_param( 'payment_account_id' ) ?? $old['account_id'] ); if ( is_wp_error( $account_id ) ) { return $account_id; }
+            $bank = $wpdb->get_row( $wpdb->prepare( "SELECT id,active,opening_on FROM {$wpdb->prefix}pds_fin_accounts WHERE id=%d AND user_id=%d FOR UPDATE", $account_id, $uid ), ARRAY_A );
+            if ( ! $bank ) { return PDS_Finance::error( 'Conta do pagamento não encontrada ou sem acesso.', 404 ); }
+            if ( ( ! $bank['active'] && (int) $old['account_id'] !== $account_id ) || $paid_on < $bank['opening_on'] ) { return PDS_Finance::error( 'Confira a conta do pagamento e sua data de saldo inicial.' ); }
+        }
+        $body = array( 'description' => $clean['description'], 'notes' => $clean['notes'], 'merchant' => $old['merchant'], 'amount' => $r->get_param( 'actual_amount' ), 'spent_on' => $paid_on, 'category_id' => $r->get_param( 'payment_category_id' ) ?? $old['category_id'], 'payment_method' => $method, 'account_id' => $account_id, 'card_id' => 'credit' === $method ? ( $r->get_param( 'payment_card_id' ) ?? $old['card_id'] ) : 0, 'installments' => 1 );
+        $request = new WP_REST_Request( 'PUT' ); $request->set_url_params( array( 'id' => $old['id'] ) ); $request->set_body_params( $body );
+        return PDS_Expenses::save_entry( $request, null, array( 'in_transaction' => true, 'payable_correction' => (int) $bill['id'] ) );
     }
     public static function save_receipt_plan( WP_REST_Request $r, $external_ref = null ) {
         $allowed = PDS_Expenses::permission(); if ( is_wp_error( $allowed ) ) { return $allowed; }
@@ -171,15 +211,15 @@ final class PDS_Finance_Planning {
         foreach ( array( 'recurring_id', 'expense_id' ) as $key ) { $row[ $key ] = $row[ $key ] ? (int) $row[ $key ] : null; }
         $row['amount'] = null === $row['amount'] ? null : (float) $row['amount']; $row['kind'] = 'payable';
         $row['state'] = 'pending' === $row['status'] && $row['due_on'] < current_time( 'Y-m-d' ) ? 'overdue' : $row['status'];
-        $row['actual_amount'] = null; $row['paid_on'] = null;
-        if ( $row['expense_id'] ) { $e = $wpdb->get_row( $wpdb->prepare( "SELECT amount,spent_on FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d", $row['expense_id'], get_current_user_id() ), ARRAY_A ); if ( $e ) { $row['actual_amount'] = (float) $e['amount']; $row['paid_on'] = $e['spent_on']; } }
+        $row['actual_amount'] = null; $row['paid_on'] = null; $row['payment'] = null;
+        if ( $row['expense_id'] ) { $e = $wpdb->get_row( $wpdb->prepare( "SELECT id,amount,spent_on,category_id,account_id,card_id,payment_method FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d AND payable_id=%d", $row['expense_id'], get_current_user_id(), $row['id'] ), ARRAY_A ); if ( $e ) { $row['actual_amount'] = (float) $e['amount']; $row['paid_on'] = $e['spent_on']; foreach ( array( 'id', 'category_id', 'account_id', 'card_id' ) as $key ) { $e[ $key ] = (int) $e[ $key ]; } $e['amount'] = (float) $e['amount']; $row['payment'] = $e; } }
         unset( $row['user_id'], $row['external_ref'] ); return $row;
     }
     public static function payables( WP_REST_Request $r ) {
         global $wpdb; $month = $r->get_param( 'month' ) ?? current_time( 'Y-m' ); $filter = $r->get_param( 'status' ) ?? 'all';
         if ( ! PDS_Finance::month( $month ) || ! in_array( $filter, array( 'all', 'pending', 'paid', 'canceled' ), true ) ) { return PDS_Finance::error( 'Confira o mês e a situação das contas.' ); }
         $warnings = self::sync_user( get_current_user_id(), $month ); self::ensure_card_months( get_current_user_id(), $month, $month );
-        $ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_payables WHERE user_id=%d AND due_on BETWEEN %s AND %s ORDER BY due_on,id LIMIT 1001", get_current_user_id(), $month . '-01', PDS_Finance::day( $month, 31 ) ) );
+        $ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_payables WHERE user_id=%d AND status<>'deleted' AND due_on BETWEEN %s AND %s ORDER BY due_on,id LIMIT 1001", get_current_user_id(), $month . '-01', PDS_Finance::day( $month, 31 ) ) );
         if ( count( $ids ) > 1000 ) { return PDS_Finance::error( 'Há mais de 1.000 contas neste mês. Consulte os registros pelo banco administrativo antes de continuar.' ); }
         $rows = array_values( array_filter( array_map( array( __CLASS__, 'get_payable' ), $ids ), static fn( $row ) => ! is_wp_error( $row ) ) );
         $ir = new WP_REST_Request( 'GET' ); $ir->set_query_params( array( 'month' => $month ) ); $invoices = PDS_Finance::invoices( $ir );
@@ -207,6 +247,42 @@ final class PDS_Finance_Planning {
         if ( is_wp_error( $saved ) || (int) ( $saved['payable_id'] ?? 0 ) !== (int) $bill['id'] ) { $wpdb->query( 'ROLLBACK' ); return is_wp_error( $saved ) ? $saved : PDS_Finance::error( 'O pagamento não corresponde a esta previsão.', 409 ); }
         if ( false === $wpdb->update( $wpdb->prefix . 'pds_fin_payables', array( 'status' => 'paid', 'expense_id' => $saved['id'], 'updated_at' => current_time( 'mysql', true ) ), array( 'id' => $bill['id'], 'user_id' => $uid ) ) ) { $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( 'Não foi possível concluir a baixa.', 500 ); }
         $wpdb->query( 'COMMIT' ); do_action( 'pds_expense_created', $saved, $uid ); return array( 'id' => (int) $bill['id'], 'expense_id' => $saved['id'] );
+    }
+    /** Legacy DELETE cancels; force=true explicitly removes a bill from the portal. */
+    public static function delete_payable( WP_REST_Request $r ) {
+        $force = $r->get_param( 'force' );
+        if ( null === $force || in_array( $force, array( false, 'false', 0, '0' ), true ) ) { return self::cancel_payable( $r ); }
+        if ( ! in_array( $force, array( true, 'true', 1, '1' ), true ) ) { return PDS_Finance::error( 'Confira a confirmação de exclusão.' ); }
+        $scope = $r->get_param( 'scope' ) ?? 'single'; if ( ! in_array( $scope, array( 'single', 'following' ), true ) ) { return PDS_Finance::error( 'Escolha somente esta conta ou esta e as próximas.' ); }
+        global $wpdb; $uid = get_current_user_id(); $old = self::find( 'payables', self::id( $r ) ); if ( is_wp_error( $old ) ) { return $old; }
+        if ( 'following' === $scope && ( ! $old['recurring_id'] || 'paid' === $old['status'] ) ) { return PDS_Finance::error( 'A exclusão das próximas deve partir de uma conta recorrente ainda não paga.', 409 ); }
+        if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return PDS_Finance::error( 'Não foi possível excluir a conta.', 500 ); }
+        $series = $old['recurring_id'] ? self::find( 'recurring', $old['recurring_id'], $uid, true ) : null;
+        if ( is_wp_error( $series ) ) { return self::rollback( $series ); }
+        $bill = self::find( 'payables', $old['id'], $uid, true );
+        if ( is_wp_error( $bill ) || $bill['status'] !== $old['status'] || $bill['expense_id'] !== $old['expense_id'] || $bill['recurring_id'] !== $old['recurring_id'] ) { return self::rollback( PDS_Finance::error( 'Esta conta mudou. Atualize e confira antes de excluir.', 409 ) ); }
+        $entry = null; $now = current_time( 'mysql', true );
+        if ( 'following' === $scope ) {
+            if ( ! $series || 'payable' !== $series['kind'] || ! PDS_Finance::month( $bill['occurrence_month'] ) ) { return self::rollback( PDS_Finance::error( 'Recorrência da conta inválida.', 409 ) ); }
+            // Paid occurrences remain real movements. Deleted occurrences retain their unique month as a tombstone.
+            $deleted = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}pds_fin_payables SET status='deleted',updated_at=%s WHERE user_id=%d AND recurring_id=%d AND occurrence_month>=%s AND status IN ('pending','canceled') AND expense_id IS NULL", $now, $uid, $series['id'], $bill['occurrence_month'] ) );
+            $end = PDS_Finance::add_month( $bill['occurrence_month'], -1 ); if ( $series['end_month'] ) { $end = min( $end, $series['end_month'] ); }
+            $stopped = $wpdb->update( $wpdb->prefix . 'pds_fin_recurring', array( 'active' => 0, 'end_month' => $end, 'updated_at' => $now ), array( 'id' => $series['id'], 'user_id' => $uid ) );
+            if ( false === $deleted || false === $stopped ) { return self::rollback( PDS_Finance::error( 'Não foi possível excluir as próximas contas.', 500 ) ); }
+        } else {
+            if ( $bill['expense_id'] ) {
+                $locked = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d AND payable_id=%d FOR UPDATE", $bill['expense_id'], $uid, $bill['id'] ) );
+                if ( ! $locked ) { return self::rollback( PDS_Finance::error( 'Pagamento da conta não encontrado. Atualize a lista.', 409 ) ); }
+                $entry = PDS_Expenses::get_entry( $locked ); if ( is_wp_error( $entry ) ) { return self::rollback( $entry ); }
+                $removed = PDS_Finance::remove_expense( $entry['id'], $uid ); if ( is_wp_error( $removed ) ) { return self::rollback( $removed ); }
+                if ( 1 !== $wpdb->delete( $wpdb->prefix . 'pds_expenses', array( 'id' => $entry['id'], 'user_id' => $uid, 'payable_id' => $bill['id'] ) ) ) { return self::rollback( PDS_Finance::error( 'Não foi possível remover o pagamento.', 500 ) ); }
+            }
+            $deleted = $wpdb->update( $wpdb->prefix . 'pds_fin_payables', array( 'status' => 'deleted', 'expense_id' => null, 'updated_at' => $now ), array( 'id' => $bill['id'], 'user_id' => $uid ) );
+            if ( 1 !== $deleted ) { return self::rollback( PDS_Finance::error( 'Não foi possível excluir a conta.', 500 ) ); }
+        }
+        if ( false === $wpdb->query( 'COMMIT' ) ) { return self::rollback( PDS_Finance::error( 'Não foi possível confirmar a exclusão.', 500 ) ); }
+        if ( $entry ) { do_action( 'pds_expense_deleted', $entry, $uid ); }
+        return array( 'success' => true, 'deleted' => (int) $deleted, 'scope' => $scope );
     }
     public static function cancel_payable( WP_REST_Request $r ) {
         global $wpdb; $bill = self::find( 'payables', self::id( $r ) ); if ( is_wp_error( $bill ) ) { return $bill; }
@@ -236,12 +312,15 @@ final class PDS_Finance_Planning {
     public static function edit_recurring( WP_REST_Request $r ) {
         global $wpdb; $uid = get_current_user_id(); $s = self::find( 'recurring', self::id( $r ) ); if ( is_wp_error( $s ) ) { return $s; }
         if ( ! $s['active'] ) { return PDS_Finance::error( 'Esta recorrência foi encerrada. Cadastre uma nova para retomar os próximos meses.', 409 ); }
-        $month = $r->get_param( 'from_month' ) ?? current_time( 'Y-m' );
-        if ( ! PDS_Finance::month( $month ) || $month !== current_time( 'Y-m' ) ) { return PDS_Finance::error( 'As alterações da recorrência valem a partir deste mês.' ); }
+        $anchor = null; $anchor_id = $r->get_param( 'from_payable_id' );
+        if ( null !== $anchor_id ) { $anchor_id = self::positive_id( $anchor_id ); if ( is_wp_error( $anchor_id ) ) { return $anchor_id; } $anchor = self::find( 'payables', $anchor_id ); if ( is_wp_error( $anchor ) ) { return $anchor; } if ( 'payable' !== $s['kind'] || (int) $anchor['recurring_id'] !== (int) $s['id'] || 'pending' !== $anchor['status'] ) { return PDS_Finance::error( 'Escolha uma conta pendente desta recorrência.', 409 ); } }
+        $month = $anchor ? $anchor['occurrence_month'] : ( $r->get_param( 'from_month' ) ?? current_time( 'Y-m' ) );
+        if ( ! PDS_Finance::month( $month ) || ( ! $anchor && $month !== current_time( 'Y-m' ) ) ) { return PDS_Finance::error( 'As alterações da recorrência valem a partir deste mês ou da conta escolhida.' ); }
         $request = new WP_REST_Request( 'POST' ); $request->set_body_params( $r->get_params() + array( 'description' => $s['description'], 'notes' => $s['notes'], 'amount' => $s['amount'], 'account_id' => $s['account_id'], 'category_id' => $s['category_id'], 'due_on' => $s['first_due'], 'received_on' => $s['first_due'], 'billing_day' => $s['due_day'], 'recurrence' => 'once' ) );
         $clean = self::clean( $request, $s['kind'] ); if ( is_wp_error( $clean ) ) { return $clean; } $day = $clean['_repeat']['day']; unset( $clean['_repeat'], $clean['due_on'] );
         $wpdb->query( 'START TRANSACTION' ); $locked = self::find( 'recurring', $s['id'], $uid, true );
         if ( is_wp_error( $locked ) || ! $locked['active'] ) { $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( 'A recorrência mudou. Atualize e tente novamente.', 409 ); }
+        if ( $anchor ) { $locked_anchor = self::find( 'payables', $anchor['id'], $uid, true ); if ( is_wp_error( $locked_anchor ) || 'pending' !== $locked_anchor['status'] || (int) $locked_anchor['recurring_id'] !== (int) $s['id'] || $locked_anchor['occurrence_month'] !== $month ) { return self::rollback( PDS_Finance::error( 'A ocorrência mudou. Atualize a lista.', 409 ) ); } }
         // Only pending instances in the chosen month onward change; realized movements remain intact.
         $table = 'receipt' === $s['kind'] ? 'receipts' : 'payables'; $date_key = 'receipt' === $s['kind'] ? 'received_on' : 'due_on';
         $items = $wpdb->get_results( $wpdb->prepare( "SELECT id,occurrence_month FROM {$wpdb->prefix}pds_fin_{$table} WHERE recurring_id=%d AND user_id=%d AND status='pending' AND occurrence_month>=%s FOR UPDATE", $s['id'], $uid, $month ), ARRAY_A );

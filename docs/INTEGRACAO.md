@@ -551,3 +551,30 @@ usuais. Não inclui o valor integral do contrato no item mensal.
 consulta/edição da compra com seu valor original. Edições, exclusões e importações
 reconciliadas refletem no relatório pelo cronograma existente. Assinaturas apenas
 previstas e pagamentos de faturas não são despesas adicionais nessa fonte.
+
+## Edição e exclusão de contas a pagar — 1.15.0
+
+* `PUT /pds/v1/finance/payables/{id}` aceita os campos de previsão existentes.
+  `scope: "single"` é o padrão. `scope: "following"` parte de uma conta recorrente
+  pendente e altera essa e as próximas previsões pendentes pela `occurrence_month`
+  original. Não altera ocorrências pagas, canceladas, excluídas ou anteriores.
+  `due_on` deve permanecer no mês original nesse escopo; `billing_day` opcional
+  permite explicitar o dia da série, mantendo o dia ancorado quando a data não muda.
+* Para editar uma conta paga, envie também `actual_amount` e `paid_on`.
+  Campos opcionais: `payment_method`, `payment_account_id`, `payment_card_id` e
+  `payment_category_id`. O gasto existente é corrigido dentro da mesma transação.
+  Os demais dados do gasto e a identidade `expense_id` são preservados.
+* `GET /pds/v1/finance/payables/{id}` inclui `payment` com os campos seguros do
+  pagamento original, além de `actual_amount` e `paid_on`.
+* `DELETE /pds/v1/finance/payables/{id}` mantém o cancelamento legado quando `force`
+  não é informado ou é falso. Com `force: true`, exclui a conta do portal.
+  `scope: "single"` exclui apenas a ocorrência, inclusive paga, removendo seu gasto.
+  `scope: "following"` exige ocorrência recorrente não paga, exclui essa e as próximas
+  não pagas e encerra a definição; pagamentos e ocorrências anteriores permanecem.
+* Exclusões deixam um marcador interno `status='deleted'`, preservando as chaves
+  únicas de origem/mês. São omitidas das listas e retornam 404 em consulta, edição,
+  pagamento ou reabertura. Cron e reenvio de confirmação do Telegram não recriam
+  registros excluídos. Exportação/apagamento de privacidade continua abrangendo-os.
+* Autenticação, nonce e posse do usuário WordPress continuam obrigatórios. Correções
+  de pagamentos e exclusões usam transações. Bloqueios de faturas pagas e reembolsos
+  realizados impedem alterações incompatíveis com movimentos dependentes.

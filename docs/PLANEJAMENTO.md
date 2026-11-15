@@ -46,6 +46,41 @@ Cancelar uma previsão não registra pagamento. Reabrir uma previsão cancelada
 também não movimenta dinheiro. Uma conta vencida continua pendente até você
 confirmar a baixa, cancelá-la ou corrigir seus dados.
 
+## Editar ou excluir uma conta — 1.15.0
+
+Cada conta pendente, paga ou cancelada tem os botões **Editar** e **Excluir**.
+Na edição, ajuste descrição, valor previsto, vencimento, categoria, conta prevista
+e observações. Alterar uma conta pendente não gera gasto nem movimenta o saldo.
+Mover o vencimento para outro mês move também sua exibição na lista mensal.
+
+Em uma conta paga, o formulário separa a previsão do **Pagamento realizado**.
+Confira valor efetivamente pago, data real, forma de pagamento, conta ou cartão e
+categoria do gasto. A correção atualiza o mesmo lançamento, mantendo seu vínculo
+com a conta original. Se mudar a conta de pagamento, o valor retorna à conta
+anterior e sai da conta corrigida. No crédito, o valor acompanha a fatura.
+
+Em uma ocorrência recorrente pendente, escolha **Somente esta conta** ou
+**Esta e as próximas contas pendentes**. A segunda opção começa no mês original
+da ocorrência selecionada, mesmo ao consultar um mês futuro, e atualiza a definição
+para novas gerações. Pagamentos, cancelamentos, exclusões e ocorrências anteriores
+são preservados. Para mudar de mês, use somente esta conta; na série, altere o dia
+dentro do mês. Ao manter a data em fevereiro ou mês curto, o dia original da série
+continua ancorado, inclusive no dia 31.
+
+**Excluir** abre uma confirmação com o efeito da operação. Uma conta não paga
+sai da lista e das previsões. Uma conta paga sai junto com seu gasto vinculado,
+recalculando o saldo ou a fatura. Ao excluir uma ocorrência recorrente não paga,
+escolha somente ela ou ela e as próximas não pagas. A segunda opção encerra a
+recorrência, preservando contas já pagas e ocorrências anteriores. Excluir apenas
+uma mantém as próximas e impede que a ocorrência excluída seja recriada.
+Fechar a confirmação não altera os registros. A exclusão não tem opção de desfazer.
+
+**Cancelar** continua mantendo uma previsão cancelada que pode ser reaberta.
+**Desfazer baixa** continua restaurando a conta pendente. São ações distintas da
+exclusão da conta. Faturas automáticas são ajustadas pelo botão **Conferir / pagar
+fatura**, por suas compras, datas e pagamentos. Faturas com pagamentos vinculados
+exigem corrigir/remover o pagamento antes de alterar ou excluir a cobrança de origem.
+
 ## Gerenciar a recorrência
 
 Em **Gerenciar recorrências de contas e recebimentos**, edite descrição,

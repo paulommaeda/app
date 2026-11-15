@@ -3,7 +3,21 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.14.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.15.0.zip)**
+
+## Editar e excluir contas a pagar — 1.15.0
+
+Em **Meu Financeiro → Contas a pagar**, cada conta pendente, paga ou cancelada
+oferece **Editar** e **Excluir**. Corrija os dados previstos e, nas contas pagas,
+o valor, a data e a conta/cartão do pagamento realizado. O mesmo gasto é atualizado,
+sem duplicação, e os saldos/faturas são recalculados.
+
+Nas recorrências, escolha **Somente esta conta** ou **Esta e as próximas**.
+As próximas alterações preservam pagamentos e ocorrências anteriores. Excluir uma
+conta paga remove também o gasto correspondente; a confirmação explica o efeito.
+Contas excluídas não reaparecem no cron. Faturas automáticas continuam gerenciadas
+por **Conferir / pagar fatura**, pelas compras e pagamentos que compõem seu valor.
+Veja [o guia de contas e recorrências](docs/PLANEJAMENTO.md).
 
 ## Instalação
 

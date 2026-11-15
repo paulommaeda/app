@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.14.0
+Stable tag: 1.15.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,7 +29,9 @@ catálogo de serviços, Meu Combustível e Meu Financeiro.
 * Importação do banco antigo por SQL/JSON ou leitura das tabelas existentes.
 * Telegram com vínculo individual, voz/texto, gastos, recebimentos e abastecimentos.
 * Recebimentos realizados ou futuros por voz/texto, com conta de destino e confirmação.
-* Contas a pagar únicas ou mensais, com vencimento, previsão e baixa manual.
+* Contas a pagar únicas ou mensais, com edição, exclusão e baixa manual.
+* Correções de contas pagas recalculam o mesmo gasto, o saldo e a fatura.
+* Recorrências permitem alterar ou excluir só uma ocorrência ou esta e as próximas.
 * Recorrências geram previsões; datas de vencimento nunca dão baixa automática.
 * Faturas dos cartões aparecem mensalmente nas contas a pagar com os gastos reais.
 * Gastos, contas, recebimentos, cartões, faturas e dashboard privados por usuário.
@@ -164,6 +166,18 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.15.0 =
+* Botões Editar e Excluir em contas pendentes, pagas e canceladas.
+* Edição de descrição, valor previsto, vencimento, categoria, conta e observações.
+* Correção de valor pago, data real, forma de pagamento, conta, cartão e categoria do gasto.
+* Contas pagas mantêm o mesmo gasto; os saldos e faturas são recalculados sem duplicação.
+* Exclusão de uma ocorrência ou desta e das próximas contas recorrentes não pagas.
+* Exclusões retiram a conta das previsões e impedem recriação por cron ou confirmação repetida.
+* Edição da recorrência a partir da ocorrência escolhida preserva meses anteriores e pagamentos.
+* Exclusão de conta paga remove seu gasto e restaura o saldo, com proteção de faturas pagas.
+* Confirmação de exclusão e formulários adaptados para computador e celular.
+* Cancelar, reabrir e desfazer baixa continuam disponíveis de forma independente.
 
 = 1.14.0 =
 * Dashboard soma somente as parcelas do mês da fatura, usando seus valores exatos.
