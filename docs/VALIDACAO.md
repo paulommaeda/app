@@ -373,3 +373,39 @@ Novas verificações específicas:
 O ZIP canônico contém somente o plugin, seus recursos e documentação. O teste de
 atualização usa Plugin_Upgrader real e confere o hash do pacote. Não contém o
 ambiente de testes, credenciais ou dados usados na validação.
+
+# Validação da versão 1.16.0
+
+Validação em WordPress 7.1.4, PHP 8.4 e MariaDB 11.8. A suíte completa reúne
+**1.431 verificações em 38 suítes**, incluindo todos os fluxos anteriores de
+cadastro, atualização nativa, combustível, Telegram, gastos, cartões, importação,
+recebimentos, recorrências, transferências, tipos de conta, compartilhamento,
+assinaturas, extratos, dashboard mensal e edição/exclusão de contas a pagar.
+
+Verificações específicas de investimentos e reservas:
+
+- **42 verificações de API/banco** e **27 verificações de navegador**.
+- Novo tipo padrão com finalidade reserva; tipos anteriores mantêm uso diário.
+- Reserva de R$ 10.000 separada da disponibilidade; resgate de R$ 800 libera só R$ 800.
+- Aportes diminuem o disponível sem criar gasto, receita ou alterar categorias.
+- Transferências dentro do mesmo grupo (uso diário ou reserva) são neutras no fluxo.
+- Rendimentos, taxas, recebimentos futuros e contas de reserva ficam fora do fluxo diário.
+- Extratos e saldos das reservas preservam todos os movimentos reais.
+- Pagamentos diretamente pela reserva não se misturam ao caixa de uso diário.
+- Faturas restantes continuam na projeção como obrigações do cartão.
+- Estornos e correções de valor/data recalculam o mês e a disponibilidade corretamente.
+- Valores de resgate/aporte são somados em centavos sem liberar o principal inteiro.
+- Tipos personalizados, renomeação, arquivamento, reativação e mudança de finalidade.
+- Contas existentes podem mudar de tipo sem reescrever saldos ou transferências.
+- Classificação histórica consistente e consultas com snapshot transacional.
+- Dados de outro usuário, tipos estrangeiros e serviço bloqueado não são acessíveis.
+- Valores inválidos de finalidade são rejeitados; falhas de consulta não viram zero fictício.
+- Privacidade inclui a finalidade e remove tipos/transferências no apagamento.
+- Inicialização e repetição de atualização preservam os tipos e saldos existentes.
+- Layout de fluxo de caixa verificado em 320, 390, 768 e 1.440 pixels.
+- Filtros de data e seletor de finalidade adaptados ao celular, sem rolagem horizontal.
+
+Os testes anteriores de tipos foram ajustados somente para reconhecer o quarto tipo
+padrão, preservando suas verificações de nomes, permissões, saldos e datas. O ZIP
+contém somente código, recursos e documentação do plugin. A atualização nativa
+confere o hash e executa o Plugin_Upgrader em uma instalação isolada.

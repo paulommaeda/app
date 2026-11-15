@@ -1,7 +1,7 @@
 <?php defined( 'ABSPATH' ) || exit; ?>
 <section data-expense-view="transfers" hidden>
     <div class="pds-finance-heading"><div><h2>Transferências entre contas</h2><p class="pds-muted">Mova valores entre suas contas sem somar gastos ou recebimentos.</p></div><button type="button" class="pds-button" data-transfer-new>Nova transferência</button></div>
-    <p class="pds-finance-note">Registre aqui uma transferência que você já fez. O valor sai da origem e entra no destino; o total entre as duas contas permanece igual.</p>
+    <p class="pds-finance-note">Registre aqui uma transferência que você já fez. Entre reserva e uso diário, o fluxo mensal mostra somente o valor resgatado ou aportado, sem criar gasto ou recebimento. O total entre as duas contas permanece igual.</p>
     <form id="pds-transfers-filter" class="pds-card pds-form pds-finance-filter">
         <label>Mês<input type="month" name="month" value="<?php echo esc_attr( current_time( 'Y-m' ) ); ?>" required></label>
         <label>Conta<select name="account_id"><option value="">Todas as contas</option></select></label>

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Portal de Serviços
  * Description: Portal com contas WordPress, controle financeiro e de abastecimentos, com gastos e recebimentos por voz no Telegram.
- * Version: 1.15.0
+ * Version: 1.16.0
  * Plugin URI: https://github.com/paulommaeda/app
  * Update URI: https://github.com/paulommaeda/app
  * Requires at least: 6.6
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PDS_VERSION', '1.15.0' );
+define( 'PDS_VERSION', '1.16.0' );
 define( 'PDS_FILE', __FILE__ );
 define( 'PDS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PDS_URL', plugin_dir_url( __FILE__ ) );
@@ -28,6 +28,7 @@ require_once PDS_DIR . 'includes/class-finance-import.php';
 require_once PDS_DIR . 'includes/class-finance-planning.php';
 require_once PDS_DIR . 'includes/class-finance-transfers.php';
 require_once PDS_DIR . 'includes/class-finance-account-types.php';
+require_once PDS_DIR . 'includes/class-finance-reserves.php';
 require_once PDS_DIR . 'includes/class-finance-payments.php';
 require_once PDS_DIR . 'includes/class-finance-sharing.php';
 require_once PDS_DIR . 'includes/class-finance-splits.php';

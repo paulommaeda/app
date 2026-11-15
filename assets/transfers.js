@@ -14,7 +14,8 @@
     for(const option of to.options)option.disabled=!!from&&option.value===from;
     if(to.value===from)to.value='';
     const a=F.state.accounts.find(a=>String(a.id)===from),b=F.state.accounts.find(a=>String(a.id)===to.value);
-    $('pds-transfer-balances').textContent=[a?'Origem · '+a.name+': '+money(a.balance):'',b?'Destino · '+b.name+': '+money(b.balance):''].filter(Boolean).join(' | ');
+    const effect=a&&b?(a.is_reserve&&!b.is_reserve?'Resgate: somente o valor transferido fica disponível no fluxo do mês.':!a.is_reserve&&b.is_reserve?'Aporte: o valor transferido sai do disponível do mês e fica reservado.':'Transferência interna: não altera o resultado do fluxo mensal.'):'';
+    $('pds-transfer-balances').textContent=[a?'Origem · '+a.name+': '+money(a.balance):'',b?'Destino · '+b.name+': '+money(b.balance):'',effect].filter(Boolean).join(' | ');
     form.elements.transferred_on.min=[a?.opening_on,b?.opening_on].filter(Boolean).sort().pop()||'';
   }
   function open(from=0){

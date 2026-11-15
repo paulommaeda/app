@@ -25,8 +25,8 @@ final class PDS_Finance_Account_Types {
         global $wpdb; $uid = get_current_user_id();
         if ( ! $uid || isset( self::$seeded[ $uid ] ) ) { return; }
         $failed = false;
-        foreach ( array( 'checking' => 'Conta corrente', 'savings' => 'Poupança', 'cash' => 'Dinheiro / carteira' ) as $code => $name ) {
-            $ok = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->prefix}pds_fin_account_types (user_id,code,name,slug,active,created_at) VALUES (%d,%s,%s,%s,1,%s)", $uid, $code, $name, sanitize_title( $name ), current_time( 'mysql', true ) ) );
+        foreach ( array( 'checking' => 'Conta corrente', 'savings' => 'Poupança', 'cash' => 'Dinheiro / carteira', 'investment' => 'Investimento / reserva' ) as $code => $name ) {
+            $ok = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->prefix}pds_fin_account_types (user_id,code,name,slug,active,is_reserve,created_at) VALUES (%d,%s,%s,%s,1,%d,%s)", $uid, $code, $name, sanitize_title( $name ), 'investment' === $code ? 1 : 0, current_time( 'mysql', true ) ) );
             $failed = $failed || false === $ok;
         }
         if ( ! $failed ) { self::$seeded[ $uid ] = true; }
@@ -34,8 +34,8 @@ final class PDS_Finance_Account_Types {
 
     public static function listing() {
         global $wpdb; self::seed();
-        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT t.id,t.code,t.name,t.active,COUNT(a.id) AS account_count FROM {$wpdb->prefix}pds_fin_account_types t LEFT JOIN {$wpdb->prefix}pds_fin_accounts a ON a.user_id=t.user_id AND a.kind=t.code WHERE t.user_id=%d GROUP BY t.id,t.code,t.name,t.active ORDER BY t.active DESC,t.name,t.id", get_current_user_id() ), ARRAY_A );
-        foreach ( $rows as &$row ) { $row['id'] = (int) $row['id']; $row['active'] = (bool) $row['active']; $row['account_count'] = (int) $row['account_count']; } unset( $row );
+        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT t.id,t.code,t.name,t.active,t.is_reserve,COUNT(a.id) AS account_count FROM {$wpdb->prefix}pds_fin_account_types t LEFT JOIN {$wpdb->prefix}pds_fin_accounts a ON a.user_id=t.user_id AND a.kind=t.code WHERE t.user_id=%d GROUP BY t.id,t.code,t.name,t.active,t.is_reserve ORDER BY t.active DESC,t.name,t.id", get_current_user_id() ), ARRAY_A );
+        foreach ( $rows as &$row ) { $row['id'] = (int) $row['id']; $row['active'] = (bool) $row['active']; $row['is_reserve'] = (bool) $row['is_reserve']; $row['account_count'] = (int) $row['account_count']; } unset( $row );
         return array( 'account_types' => $rows );
     }
 
@@ -58,14 +58,14 @@ final class PDS_Finance_Account_Types {
     public static function save( WP_REST_Request $r ) {
         global $wpdb; self::seed(); $uid = get_current_user_id(); $id = absint( $r->get_url_params()['id'] ?? 0 );
         $old = $id ? self::find( $id ) : array(); if ( is_wp_error( $old ) ) { return $old; }
-        $name = $r->get_param( 'name' ) ?? ( $old['name'] ?? '' ); $active = $r->get_param( 'active' );
-        if ( ! is_string( $name ) || ( null !== $active && ! is_bool( $active ) ) ) { return PDS_Finance::error( 'Informe um nome e uma situação válidos.' ); }
+        $name = $r->get_param( 'name' ) ?? ( $old['name'] ?? '' ); $active = $r->get_param( 'active' ); $reserve = $r->get_param( 'is_reserve' );
+        if ( ! is_string( $name ) || ( null !== $active && ! is_bool( $active ) ) || ( $r->has_param( 'is_reserve' ) && ! is_bool( $reserve ) ) ) { return PDS_Finance::error( 'Informe nome, situação e finalidade do tipo de conta válidos.' ); }
         $name = sanitize_text_field( trim( $name ) );
         if ( mb_strlen( $name ) < 2 || mb_strlen( $name ) > 80 ) { return PDS_Finance::error( 'Use um nome de tipo com 2 a 80 caracteres.' ); }
         $slug = substr( sanitize_title( $name ), 0, 170 ); if ( ! $slug ) { $slug = hash( 'sha256', $name ); }
         if ( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_account_types WHERE user_id=%d AND slug=%s AND id<>%d", $uid, $slug, $id ) ) ) { return PDS_Finance::error( 'Você já tem esse tipo de conta. Se estiver arquivado, reative-o.', 409 ); }
         if ( ! $id && (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}pds_fin_account_types WHERE user_id=%d", $uid ) ) >= 100 ) { return PDS_Finance::error( 'Limite de 100 tipos de conta por usuário.' ); }
-        $data = array( 'name' => $name, 'slug' => $slug, 'active' => null === $active ? (int) ( $old['active'] ?? 1 ) : (int) $active );
+        $data = array( 'name' => $name, 'slug' => $slug, 'active' => null === $active ? (int) ( $old['active'] ?? 1 ) : (int) $active, 'is_reserve' => null === $reserve ? (int) ( $old['is_reserve'] ?? 0 ) : (int) $reserve );
         $code = $old['code'] ?? ( 'type_' . substr( str_replace( '-', '', wp_generate_uuid4() ), 0, 11 ) );
         $ok = $id ? $wpdb->update( $wpdb->prefix . 'pds_fin_account_types', $data, array( 'id' => $id, 'user_id' => $uid ) ) : $wpdb->insert( $wpdb->prefix . 'pds_fin_account_types', $data + array( 'code' => $code, 'user_id' => $uid, 'created_at' => current_time( 'mysql', true ) ) );
         return false === $ok ? PDS_Finance::error( 'Não foi possível salvar o tipo. Confira se o nome já está cadastrado.', 409 ) : array( 'id' => $id ?: (int) $wpdb->insert_id, 'code' => $code );

@@ -20,7 +20,9 @@ A chave e o modelo existentes não são sobrescritos pela atualização.
 
 ## Contas e recebimentos
 
-Contas podem ser corrente, poupança ou dinheiro/carteira. Informe o saldo **antes
+Contas podem ser corrente, poupança, dinheiro/carteira, investimento/reserva ou
+usar tipos personalizados. A finalidade do tipo define se o dinheiro entra no
+fluxo de uso diário ou fica reservado. Veja [INVESTIMENTOS.md](INVESTIMENTOS.md). Informe o saldo **antes
 dos movimentos da data inicial**. O saldo atual considera, da data inicial até
 hoje: saldo inicial + entradas recebidas − gastos diretos vinculados à conta −
 pagamentos de faturas + transferências recebidas − transferências enviadas. Movimentos anteriores ficam no histórico e não alteram
@@ -157,7 +159,8 @@ um PDF de cada banco precisa ser validado com a configuração real do portal.
 **Dashboard de gastos**: desde 1.14.0, parcelas do cartão pela data de vencimento
 da fatura e gastos fora do cartão pela data da compra, com categorias e hábitos.
 O valor total da compra permanece no Histórico e em Consultar compra. **Fluxo de caixa**: recebimentos realizados, saídas diretas,
-pagamentos de fatura, valores a receber e faturas abertas do período. O resultado
+pagamentos de fatura, resgates, aportes, valores a receber e faturas abertas do período.
+Investimentos e reservas ficam fora do saldo disponível e do fluxo de uso diário. O resultado
 previsto não é o saldo bancário. **Faturas**: parcelas pelo mês de vencimento.
 
 No Telegram, diga, por exemplo: “Comprei um celular de R$ 1.200 no cartão
@@ -168,8 +171,9 @@ dizer o nome da conta de saída. As preferências de confirmação continuam val
 
 Os dados pertencem ao usuário WordPress e entram na exportação/apagamento das
 ferramentas de privacidade. Desinstalar preserva tabelas para reinstalação.
-Não há conexão bancária automática, transferência entre contas, investimentos,
-pagamentos bancários ou cobrança de assinaturas do portal nesta versão.
+Não há conexão bancária automática, execução de transferências, compra/venda de
+ativos, pagamentos bancários ou cobrança de assinaturas do portal. Transferências
+e contas de investimento são registros de controle financeiro, com saldos e extratos.
 
 ## Recebimentos por voz e texto (1.6.0)
 
@@ -198,12 +202,15 @@ não alteram saldos; o vencimento não efetua baixa. Confirme valor/data reais c
 A partir da versão **1.8.0**, abra **Transferências → Nova transferência** ou use
 **Transferir** na conta de origem. Escolha duas contas próprias ativas, valor
 positivo, data realizada até hoje e observações opcionais. Conta corrente,
-poupança e dinheiro/carteira podem participar. A data não pode anteceder o
+poupança, dinheiro/carteira, investimentos e tipos personalizados podem participar. A data não pode anteceder o
 saldo inicial de nenhuma das duas contas.
 
 Cada transferência é um único movimento: o mesmo valor sai da origem e entra
 no destino. Ela não gera despesa nem receita, não altera categorias de gastos,
-não entra nos totais de entradas/saídas do fluxo de caixa e não modifica faturas.
+não entra como recebimento ou gasto e não modifica faturas. Na versão 1.16.0,
+transferências entre reserva e uso diário aparecem como resgates ou aportes,
+considerando somente o valor transferido no resultado do fluxo. Dentro do mesmo
+grupo (uso diário ou reserva), o efeito no resultado continua neutro.
 Os saldos das contas exibidos no portal e no fluxo de caixa já incluem o efeito
 líquido. O total entre origem e destino permanece igual. Saldos negativos são
 permitidos, como nos demais movimentos do controle financeiro.
@@ -282,3 +289,14 @@ correções, recebimento e preservação dos dados quando a opção é desativad
 
 Consulte também [Extrato de movimentação das contas](EXTRATOS.md) para consultar
 saldos por período e editar ou excluir movimentos pelos seus registros originais.
+
+## Investimentos e reservas — 1.16.0
+
+A finalidade **Investimento / reserva — fora do fluxo mensal** pode ser escolhida
+em **Contas → Tipos de conta**; o novo tipo padrão já usa essa finalidade.
+Contas existentes preservam a finalidade anterior de uso diário até você alterá-la.
+O dinheiro reservado e seus movimentos ficam separados do disponível para o mês.
+Resgate somente o necessário por uma transferência para uma conta de uso diário,
+ou faça um aporte pelo caminho inverso. Saldos, extratos e o patrimônio total das
+contas são preservados, sem receita ou gasto duplicado. Para regras, exemplos,
+filtros e efeito das alterações de finalidade, veja [INVESTIMENTOS.md](INVESTIMENTOS.md).

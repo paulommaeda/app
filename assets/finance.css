@@ -25,3 +25,7 @@
 @media(max-width:640px){.pds-finance-table.pds-statement-table{min-width:0!important;width:100%}.pds-statement-table tr{width:100%}}
 
 .pds-plan-item [data-plan-delete]{color:#a33232;border-color:#e5bcbc}.pds-plan-delete-confirm{background:#a33232!important;border-color:#a33232!important;color:#fff!important}.pds-plan-item .pds-finance-actions{flex-wrap:wrap}.pds-plan-item{min-width:0}.pds-plan-item h3{overflow-wrap:anywhere}
+
+.pds-finance-liquidity{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:24px}.pds-finance-liquidity small{display:block;font-size:11px;line-height:1.8;color:#728779}.pds-finance-reserve{background:#f6f5ee;border-color:#e3dfcf}.pds-finance-reserve>.pds-button{margin-top:16px}.pds-finance-liquidity .pds-finance-number{margin:12px 0}.pds-finance-account h3,[data-flow-account] span{overflow-wrap:anywhere}@media(max-width:640px){.pds-finance-liquidity{grid-template-columns:1fr}}
+
+.pds-finance-filter>label{min-width:0}.pds-finance-filter input{min-width:0;max-width:100%}@media(max-width:480px){#pds-finance-period,#pds-receipts-period{grid-template-columns:minmax(0,1fr)}}

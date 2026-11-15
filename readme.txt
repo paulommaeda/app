@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.15.0
+Stable tag: 1.16.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,9 @@ catálogo de serviços, Meu Combustível e Meu Financeiro.
 * Recorrências permitem alterar ou excluir só uma ocorrência ou esta e as próximas.
 * Recorrências geram previsões; datas de vencimento nunca dão baixa automática.
 * Faturas dos cartões aparecem mensalmente nas contas a pagar com os gastos reais.
+* Investimentos e reservas fora do dinheiro disponível e do fluxo de uso diário.
+* Resgates e aportes por transferências, disponibilizando somente o valor necessário.
+* Finalidade configurável nos tipos de conta; saldos e extratos preservados.
 * Gastos, contas, recebimentos, cartões, faturas e dashboard privados por usuário.
 * Dashboard mensal soma as parcelas de cada fatura; valor integral fica na consulta da compra.
 * Abastecimentos novos geram gastos automaticamente para quem registrou.
@@ -166,6 +169,20 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.16.0 =
+* Tipo Investimento / reserva e finalidade configurável nos tipos personalizados.
+* Saldo reservado separado do dinheiro disponível para uso diário.
+* Movimentos das reservas fora do fluxo mensal, preservando seus saldos e extratos.
+* Resgates e aportes consideram somente transferências entre reserva e uso diário.
+* Transferências internas do mesmo grupo permanecem neutras e sem despesa ou receita.
+* Resultado realizado e previsto incluem somente o valor liberado ou reservado.
+* Rendimentos e taxas da reserva permanecem nos extratos sem inflar a disponibilidade.
+* Contas previstas de reserva ficam fora da projeção diária; faturas em aberto são preservadas.
+* Contas existentes podem mudar de tipo e tipos usados podem mudar de finalidade.
+* Renomear, arquivar ou reativar preserva a finalidade e o histórico.
+* Migração preserva a classificação de contas anteriores; privacidade inclui a finalidade.
+* Fluxo de caixa, formulários e filtros de datas adaptados para celular.
 
 = 1.15.0 =
 * Botões Editar e Excluir em contas pendentes, pagas e canceladas.

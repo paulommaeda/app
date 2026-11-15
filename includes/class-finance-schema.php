@@ -71,6 +71,7 @@ final class PDS_Finance_Schema {
             name varchar(80) NOT NULL,
             slug varchar(170) NOT NULL,
             active tinyint(1) NOT NULL DEFAULT 1,
+            is_reserve tinyint(1) NOT NULL DEFAULT 0,
             created_at datetime NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY user_code (user_id,code),

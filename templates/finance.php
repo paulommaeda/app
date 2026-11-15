@@ -1,6 +1,6 @@
 <?php defined( 'ABSPATH' ) || exit; ?>
 <section data-expense-view="finance" hidden>
-    <div class="pds-finance-heading"><div><h2>Seu dinheiro em movimento</h2><p class="pds-muted">Acompanhe o que entrou, saiu e ainda está previsto.</p></div></div>
+    <div class="pds-finance-heading"><div><h2>Seu dinheiro em movimento</h2><p class="pds-muted">Acompanhe o dinheiro disponível, os resgates e os aportes. Investimentos e reservas ficam separados do fluxo mensal.</p></div></div>
     <form id="pds-finance-period" class="pds-card pds-form pds-finance-filter"><label>De<input type="date" name="from" value="<?php echo esc_attr( current_time( 'Y-m-01' ) ); ?>" required></label><label>Até<input type="date" name="to" value="<?php echo esc_attr( current_time( 'Y-m-t' ) ); ?>" required></label><button class="pds-button pds-button-secondary" type="submit">Atualizar período</button></form>
     <div id="pds-finance-overview"></div>
 </section>

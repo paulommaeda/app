@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.15.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.16.0.zip)**
 
 ## Editar e excluir contas a pagar — 1.15.0
 
@@ -18,6 +18,20 @@ conta paga remove também o gasto correspondente; a confirmação explica o efei
 Contas excluídas não reaparecem no cron. Faturas automáticas continuam gerenciadas
 por **Conferir / pagar fatura**, pelas compras e pagamentos que compõem seu valor.
 Veja [o guia de contas e recorrências](docs/PLANEJAMENTO.md).
+
+## Investimentos e reservas — 1.16.0
+
+Em **Meu Financeiro → Contas**, escolha o tipo **Investimento / reserva** para
+separar esse dinheiro do disponível no mês. O fluxo exibe **Disponível para uso
+hoje**, **Investimentos e reservas hoje**, **Resgatado da reserva** e **Aportado
+à reserva**. O saldo reservado e seus movimentos não entram no fluxo de uso diário.
+
+Use **Resgatar / transferir** para enviar somente o necessário a uma conta de uso
+diário: R$ 800 transferidos de uma reserva de R$ 10 mil disponibilizam apenas
+R$ 800, mantendo R$ 9.200 reservados. Aportes fazem o caminho inverso, sem criar
+receitas ou gastos. A finalidade também pode ser definida nos tipos personalizados.
+Contas existentes podem mudar de tipo sem perder saldos ou extratos.
+Veja [o guia de investimentos e reservas](docs/INVESTIMENTOS.md).
 
 ## Instalação
 
@@ -140,7 +154,8 @@ formato de importação, parcelas projetadas e limites.
 
 Diga ou envie por áudio: **“Recebi 100 reais na conta C6 pessoa jurídica.”**
 A conta de destino deve estar cadastrada em **Meu Financeiro → Contas**. O bot
-registra a entrada, atualiza o saldo e o fluxo de caixa e mostra o resumo. Usa
+registra a entrada, atualiza o saldo e mostra o resumo. Entradas em reservas ficam
+fora do fluxo de uso diário. Usa
 o mesmo vínculo, provedor e preferência de confirmação já configurados.
 
 `/contas` lista suas contas ativas; `/recebimentos` mostra ajuda. Se valor, data

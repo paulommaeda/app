@@ -578,3 +578,35 @@ previstas e pagamentos de faturas não são despesas adicionais nessa fonte.
 * Autenticação, nonce e posse do usuário WordPress continuam obrigatórios. Correções
   de pagamentos e exclusões usam transações. Bloqueios de faturas pagas e reembolsos
   realizados impedem alterações incompatíveis com movimentos dependentes.
+
+## Contas de investimento e disponibilidade — 1.16.0
+
+* `finance/account-types` aceita `is_reserve` booleano explícito em POST/PUT.
+  Omitir mantém a finalidade existente (ou uso diário para novo tipo personalizado).
+  Strings, números e null explícito são rejeitados. O novo padrão `investment`
+  é reserva; checking, savings e cash mantêm o comportamento anterior.
+* Listagens de tipos retornam `is_reserve`; `finance/accounts` retorna `is_reserve`
+  e `in_cash_flow`, derivados do tipo pertencente ao mesmo usuário. Mudar a
+  finalidade reclassifica todas as contas desse tipo, inclusive o fluxo histórico;
+  não altera os valores ou as identidades dos movimentos e saldos originais.
+* `finance/overview` retorna `available_balance` e `reserve_balance` (saldos de hoje
+  de contas ativas), além de `reserve_withdrawals` e `reserve_contributions` pelas
+  transferências realizadas no período selecionado. `accounts` mantém a listagem
+  completa para compatibilidade; cada conta informa sua natureza.
+* Entradas realizadas/pendentes, gastos diretos, pagamentos de fatura e previsões
+  de contas explicitamente ligadas a reservas são excluídos do fluxo de uso diário.
+  Dados legados sem conta e previsões sem conta definida continuam no fluxo.
+  Faturas em aberto continuam sendo obrigações do cartão sem conta de pagamento
+  predeterminada. O dashboard de gastos continua abrangendo despesas reais.
+* `cash_result` = received + reserve_withdrawals − reserve_contributions −
+  direct_expenses − invoice_payments. `projected_result` = cash_result +
+  pending_income − open_invoices − pending_payables.
+* Transferências de reserva para uso diário são resgates; no caminho inverso são
+  aportes. Transferências do mesmo grupo são neutras. Só status completed entra
+  no cálculo; correções e estornos usam o registro original e suas datas reais.
+  Não se cria registro em gastos ou recebimentos para representar transferências.
+* Saldos e extratos continuam completos; arquivar tipo não muda sua finalidade,
+  e arquivar conta não altera sua classificação histórica. Tipos permanecem
+  privados por usuário. A consulta do fluxo usa snapshot transacional consistente.
+* Migração acrescenta `pds_fin_account_types.is_reserve` com default 0. Exportação
+  e apagamento de privacidade incluem a finalidade e seguem o usuário WordPress.

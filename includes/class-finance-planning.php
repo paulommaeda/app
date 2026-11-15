@@ -301,8 +301,8 @@ final class PDS_Finance_Planning {
         if ( false === $wpdb->update( $wpdb->prefix . 'pds_fin_payables', array( 'status' => 'pending', 'expense_id' => null, 'updated_at' => current_time( 'mysql', true ) ), array( 'id' => $bill['id'], 'user_id' => $uid ) ) ) { $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( 'Não foi possível reabrir a conta.', 500 ); }
         $wpdb->query( 'COMMIT' ); if ( $entry ) { do_action( 'pds_expense_deleted', $entry, $uid ); } return array( 'success' => true );
     }
-    public static function pending_totals( $uid, $from, $to ) {
-        global $wpdb; $row = $wpdb->get_row( $wpdb->prepare( "SELECT COALESCE(SUM(amount),0) AS amount,COUNT(*) AS count,SUM(amount IS NULL) AS unknown_count FROM {$wpdb->prefix}pds_fin_payables WHERE user_id=%d AND status='pending' AND due_on BETWEEN %s AND %s", $uid, $from, $to ), ARRAY_A );
+    public static function pending_totals( $uid, $from, $to, $cash_only = false ) {
+        global $wpdb; $scope = $cash_only ? ' AND ' . PDS_Finance_Reserves::cash_scope( 'p', $uid ) : ''; $row = $wpdb->get_row( $wpdb->prepare( "SELECT COALESCE(SUM(p.amount),0) AS amount,COUNT(*) AS count,SUM(p.amount IS NULL) AS unknown_count FROM {$wpdb->prefix}pds_fin_payables p WHERE p.user_id=%d AND p.status='pending' AND p.due_on BETWEEN %s AND %s $scope", $uid, $from, $to ), ARRAY_A );
         return array( 'amount' => (float) $row['amount'], 'count' => (int) $row['count'], 'unknown_count' => (int) $row['unknown_count'] );
     }
     public static function recurring() {
