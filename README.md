@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.13.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.14.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.13.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.14.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -233,3 +233,16 @@ um pagamento de fatura mantém as compras; excluir a baixa de uma conta a pagar
 reabre essa ocorrência como pendente. Abastecimentos acompanham o registro original.
 As confirmações mostram o efeito de cada exclusão antes de aplicar. Consulte o
 [manual de extratos](docs/EXTRATOS.md).
+
+
+## Dashboard pelas parcelas do mês (1.14.0)
+
+O **Dashboard** soma apenas os valores das parcelas das faturas do período. Uma
+compra de **R$ 500 em 5 vezes** contribui com **R$ 100 em cada mês da fatura**, e
+o valor de R$ 500 fica no **Histórico** e em **Consultar compra**. Categorias,
+formas de pagamento, maior lançamento, média e gráficos seguem a mesma regra.
+
+Use o seletor de mês e as setas para conferir os próximos meses. Gastos fora do
+cartão continuam pela data da compra; crédito à vista também segue a respectiva
+fatura. Parcelas de compras antigas entram no mês correto, sem exigir nova
+importação ou duplicar registros. Veja o [manual do dashboard mensal](docs/DASHBOARD-MENSAL.md).

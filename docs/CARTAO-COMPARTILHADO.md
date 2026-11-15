@@ -28,8 +28,8 @@ parcelamento. Marque **Este gasto é de outra pessoa ou será dividido** e escol
   parte. Sem sua participação, a soma deve corresponder ao valor inteiro a dividir.
 
 Exemplo: **compra de R$ 500 em 5 vezes, metade sua e metade da Isabela**.
-A compra continua em R$ 500 no dashboard e em cinco parcelas de R$ 100 nas
-faturas normais. Surgem cinco recebimentos **A receber** da Isabela, cada um de
+A compra continua cadastrada em R$ 500 para consulta. Desde 1.14.0, o dashboard
+e a fatura mostram a parcela de R$ 100 em cada mês. Surgem cinco recebimentos **A receber** da Isabela, cada um de
 **R$ 50**, com data igual ao vencimento da respectiva fatura. Os R$ 250 da sua
 parte não geram recebimentos. Não há outro cartão, fatura ou dashboard separado.
 

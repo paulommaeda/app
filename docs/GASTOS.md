@@ -124,9 +124,10 @@ repetidas e reenvios da notificação não criam novos gastos. A fila guarda o
 serviço de cada ID para evitar confundir um gasto com um abastecimento.
 
 Desde 1.5.0, inclui contas, recebimentos, faturas, parcelas futuras, fluxo de caixa
-e conferência de importações. O dashboard de gastos continua pela data da compra
-e considera o valor total uma vez. Faturas mostram as parcelas; Fluxo de caixa
-mostra saídas diretas e pagamentos de fatura. Consulte [FINANCEIRO.md](FINANCEIRO.md).
+e conferência de importações. Desde 1.14.0, o dashboard soma as parcelas do mês
+da fatura; gastos fora do cartão continuam pela data da compra. O valor integral
+fica no Histórico e em Consultar compra. Fluxo de caixa mostra saídas diretas e
+pagamentos de fatura. Consulte [FINANCEIRO.md](FINANCEIRO.md).
 
 ## Extensão técnica
 

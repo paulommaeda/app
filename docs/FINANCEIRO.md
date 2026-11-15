@@ -154,8 +154,9 @@ um PDF de cada banco precisa ser validado com a configuração real do portal.
 
 ## Visões e Telegram
 
-**Dashboard de gastos**: compras pela data da compra, valor total uma vez,
-categorias e hábitos. **Fluxo de caixa**: recebimentos realizados, saídas diretas,
+**Dashboard de gastos**: desde 1.14.0, parcelas do cartão pela data de vencimento
+da fatura e gastos fora do cartão pela data da compra, com categorias e hábitos.
+O valor total da compra permanece no Histórico e em Consultar compra. **Fluxo de caixa**: recebimentos realizados, saídas diretas,
 pagamentos de fatura, valores a receber e faturas abertas do período. O resultado
 previsto não é o saldo bancário. **Faturas**: parcelas pelo mês de vencimento.
 

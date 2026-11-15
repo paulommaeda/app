@@ -520,3 +520,34 @@ Recebimentos recorrentes e reembolsos excluídos mantêm uma ocorrência cancela
 Editar a data inicial de uma conta verifica também recebimentos, despesas diretas
 e pagamentos já incluídos no saldo, além das transferências existentes. A consulta
 e as alterações respeitam propriedade, arquivamento e bloqueios de serviço.
+
+
+## Dashboard mensal por parcelas — 1.14.0
+
+`GET /pds/v1/expenses/report` passa a usar `basis=invoice_installments` como
+semântica padrão, preservando a autenticação, filtros e formato das agregações.
+Gastos fora do cartão (e crédito legado sem cartão) usam valor/data originais;
+compras com cartão usam `pds_fin_installments.amount` e o vencimento da respectiva
+fatura. Nenhum movimento ou saldo novo é armazenado. A leitura agrega as fontes
+em snapshot consistente e restringe todas as junções ao proprietário.
+
+Sem `to`, o relatório termina no último dia do mês atual. Um mês calendário
+completo é comparado com o mês anterior completo; períodos personalizados mantêm
+a comparação com a janela anterior de mesma duração. Filtros de data em crédito
+usam `invoices.due_on`. Categoria, pagamento, descrição, estabelecimento e notas
+continuam sendo filtrados nos dados da compra original, mesmo que ela tenha sido
+cadastrada em outro mês. Histórico e exportação de compras mantêm seus filtros
+pela data original e o valor integral cadastrado.
+
+`summary.count` conta lançamentos/parcelas no período; `largest` é o maior valor
+individual do período. `summary.card_spent` soma somente parcelas de cartões.
+Categorias, pagamentos e evolução derivam da mesma fonte e valores. `recent`
+retorna até cinco lançamentos do período com o ID original da compra, `amount`
+da parcela, `spent_on` do vencimento, `purchase_on`, `is_installment`,
+`installment_no`, `installment_total` e `invoice_month`, além dos metadados
+usuais. Não inclui o valor integral do contrato no item mensal.
+
+`GET /expenses/entries` e `GET /expenses/entries/{id}` continuam disponíveis para
+consulta/edição da compra com seu valor original. Edições, exclusões e importações
+reconciliadas refletem no relatório pelo cronograma existente. Assinaturas apenas
+previstas e pagamentos de faturas não são despesas adicionais nessa fonte.

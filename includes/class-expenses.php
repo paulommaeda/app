@@ -164,9 +164,9 @@ final class PDS_Expenses {
         return array( 'from' => $from, 'to' => $to, 'category_id' => (int) $category, 'q' => trim( $q ), 'payment_method' => $payment );
     }
 
-    private static function where( $f ) {
+    private static function where( $f, $date_column = 'e.spent_on' ) {
         global $wpdb;
-        $sql = $wpdb->prepare( 'e.user_id=%d AND e.spent_on BETWEEN %s AND %s', get_current_user_id(), $f['from'], $f['to'] );
+        $sql = $wpdb->prepare( 'e.user_id=%d AND ' . $date_column . ' BETWEEN %s AND %s', get_current_user_id(), $f['from'], $f['to'] );
         if ( $f['category_id'] ) { $sql .= $wpdb->prepare( ' AND e.category_id=%d', $f['category_id'] ); }
         if ( $f['payment_method'] ) { $sql .= $wpdb->prepare( ' AND e.payment_method=%s', $f['payment_method'] ); }
         if ( $f['q'] ) { $like = '%' . $wpdb->esc_like( $f['q'] ) . '%'; $sql .= $wpdb->prepare( ' AND (e.description LIKE %s OR e.merchant LIKE %s OR e.notes LIKE %s)', $like, $like, $like ); }
@@ -183,20 +183,42 @@ final class PDS_Expenses {
         return array( 'entries' => array_map( array( __CLASS__, 'cast' ), $rows ), 'total' => $total, 'page' => $page, 'pages' => max( 1, (int) ceil( $total / $per_page ) ), 'filters' => $f );
     }
 
+    /** Dashboard values use real installment amounts and their invoice due dates. */
+    private static function report_source( $f ) {
+        global $wpdb; $p = $wpdb->prefix; $fields = 'e.id,e.user_id,e.category_id,e.description,e.payment_method,e.merchant,e.notes,e.source,e.card_id,e.account_id,e.installments,e.installment_start,e.fuel_record_id,e.payable_id,e.person_id,e.sharing_mode,e.sharing_start';
+        $direct_where = self::where( $f ); $card_where = self::where( $f, 'i.due_on' );
+        $direct = "SELECT $fields,e.spent_on,e.spent_on AS purchase_on,e.amount,0 AS is_installment,NULL AS installment_no,NULL AS installment_total,NULL AS invoice_month FROM {$p}pds_expenses e WHERE $direct_where AND (e.payment_method<>'credit' OR e.card_id=0)";
+        $credit = "SELECT $fields,i.due_on AS spent_on,e.spent_on AS purchase_on,s.amount,1 AS is_installment,s.installment_no,s.installment_total,i.invoice_month FROM {$p}pds_expenses e INNER JOIN {$p}pds_fin_installments s ON s.expense_id=e.id AND s.user_id=e.user_id AND s.card_id=e.card_id INNER JOIN {$p}pds_fin_invoices i ON i.id=s.invoice_id AND i.user_id=e.user_id AND i.card_id=s.card_id WHERE $card_where AND e.payment_method='credit' AND e.card_id>0";
+        return "$direct UNION ALL $credit";
+    }
     public static function report( WP_REST_Request $request ) {
-        global $wpdb; self::seed(); $f = self::filters( $request ); if ( is_wp_error( $f ) ) { return $f; } $where = self::where( $f );
-        $summary = $wpdb->get_row( "SELECT COALESCE(SUM(e.amount),0) AS spent,COUNT(*) AS count,COALESCE(MAX(e.amount),0) AS largest FROM {$wpdb->prefix}pds_expenses e WHERE $where", ARRAY_A );
+        global $wpdb; self::seed(); $query = clone $request; if ( ! $query->has_param( 'to' ) ) { $query->set_param( 'to', current_time( 'Y-m-t' ) ); }
+        $f = self::filters( $query ); if ( is_wp_error( $f ) ) { return $f; } $source = self::report_source( $f );
+        if ( false === $wpdb->query( 'START TRANSACTION WITH CONSISTENT SNAPSHOT' ) ) { return self::error( 'Não foi possível consultar os gastos do período.', 500 ); }
+        $summary = $wpdb->get_row( "SELECT COALESCE(SUM(e.amount),0) AS spent,COUNT(*) AS count,COALESCE(MAX(e.amount),0) AS largest,COALESCE(SUM(CASE WHEN e.is_installment=1 THEN e.amount ELSE 0 END),0) AS card_spent FROM ($source) e", ARRAY_A );
+        if ( $wpdb->last_error || ! $summary ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível totalizar as parcelas e os gastos.', 500 ); }
         $days = (int) ( ( strtotime( $f['to'] . ' UTC' ) - strtotime( $f['from'] . ' UTC' ) ) / DAY_IN_SECONDS ) + 1;
-        $previous = $f; $previous['to'] = gmdate( 'Y-m-d', strtotime( $f['from'] . ' UTC' ) - DAY_IN_SECONDS ); $previous['from'] = gmdate( 'Y-m-d', strtotime( $f['from'] . ' UTC' ) - $days * DAY_IN_SECONDS );
-        $previous_where = self::where( $previous ); $previous_total = (float) $wpdb->get_var( "SELECT COALESCE(SUM(e.amount),0) FROM {$wpdb->prefix}pds_expenses e WHERE $previous_where" );
-        $summary = array( 'spent' => (float) $summary['spent'], 'count' => (int) $summary['count'], 'largest' => (float) $summary['largest'], 'daily_average' => round( (float) $summary['spent'] / $days, 2 ), 'days' => $days, 'previous_total' => $previous_total, 'change_percent' => $previous_total > 0 ? round( ( (float) $summary['spent'] - $previous_total ) / $previous_total * 100, 1 ) : null, 'previous_from' => $previous['from'], 'previous_to' => $previous['to'] );
-        $categories = $wpdb->get_results( "SELECT c.id,c.name,c.color,SUM(e.amount) AS total,COUNT(*) AS count FROM {$wpdb->prefix}pds_expenses e INNER JOIN {$wpdb->prefix}pds_expense_categories c ON c.id=e.category_id AND c.user_id=e.user_id WHERE $where GROUP BY c.id,c.name,c.color ORDER BY total DESC,c.name", ARRAY_A );
+        $previous = $f;
+        if ( substr( $f['from'], 8 ) === '01' && substr( $f['from'], 0, 7 ) === substr( $f['to'], 0, 7 ) && $f['to'] === gmdate( 'Y-m-t', strtotime( $f['from'] . ' UTC' ) ) ) {
+            $previous['from'] = PDS_Finance::add_month( substr( $f['from'], 0, 7 ), -1 ) . '-01'; $previous['to'] = gmdate( 'Y-m-t', strtotime( $previous['from'] . ' UTC' ) );
+        } else { $previous['to'] = gmdate( 'Y-m-d', strtotime( $f['from'] . ' UTC' ) - DAY_IN_SECONDS ); $previous['from'] = gmdate( 'Y-m-d', strtotime( $f['from'] . ' UTC' ) - $days * DAY_IN_SECONDS ); }
+        $previous_source = self::report_source( $previous ); $previous_total = (float) $wpdb->get_var( "SELECT COALESCE(SUM(e.amount),0) FROM ($previous_source) e" );
+        if ( $wpdb->last_error ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível comparar os períodos.', 500 ); }
+        $summary = array( 'spent' => (float) $summary['spent'], 'count' => (int) $summary['count'], 'largest' => (float) $summary['largest'], 'card_spent' => (float) $summary['card_spent'], 'daily_average' => round( (float) $summary['spent'] / $days, 2 ), 'days' => $days, 'previous_total' => $previous_total, 'change_percent' => $previous_total > 0 ? round( ( (float) $summary['spent'] - $previous_total ) / $previous_total * 100, 1 ) : null, 'previous_from' => $previous['from'], 'previous_to' => $previous['to'] );
+        $categories = $wpdb->get_results( "SELECT c.id,c.name,c.color,SUM(e.amount) AS total,COUNT(*) AS count FROM ($source) e INNER JOIN {$wpdb->prefix}pds_expense_categories c ON c.id=e.category_id AND c.user_id=e.user_id GROUP BY c.id,c.name,c.color ORDER BY total DESC,c.name", ARRAY_A );
+        if ( $wpdb->last_error ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível agrupar os gastos por categoria.', 500 ); }
         foreach ( $categories as &$c ) { $c['id'] = (int) $c['id']; $c['total'] = (float) $c['total']; $c['count'] = (int) $c['count']; $c['percent'] = $summary['spent'] > 0 ? round( $c['total'] / $summary['spent'] * 100, 1 ) : 0; } unset( $c );
         $monthly = $days > 62; $format = $monthly ? '%Y-%m' : '%Y-%m-%d';
-        $trend = $wpdb->get_results( "SELECT DATE_FORMAT(e.spent_on,'$format') AS period,SUM(e.amount) AS total FROM {$wpdb->prefix}pds_expenses e WHERE $where GROUP BY period ORDER BY period", ARRAY_A );
+        $trend = $wpdb->get_results( "SELECT DATE_FORMAT(e.spent_on,'$format') AS period,SUM(e.amount) AS total FROM ($source) e GROUP BY period ORDER BY period", ARRAY_A );
+        if ( $wpdb->last_error ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível calcular a evolução dos gastos.', 500 ); }
         foreach ( $trend as &$point ) { $point['total'] = (float) $point['total']; } unset( $point );
-        $payments = $wpdb->get_results( "SELECT e.payment_method,SUM(e.amount) AS total,COUNT(*) AS count FROM {$wpdb->prefix}pds_expenses e WHERE $where GROUP BY e.payment_method ORDER BY total DESC", ARRAY_A );
+        $payments = $wpdb->get_results( "SELECT e.payment_method,SUM(e.amount) AS total,COUNT(*) AS count FROM ($source) e GROUP BY e.payment_method ORDER BY total DESC", ARRAY_A );
+        if ( $wpdb->last_error ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível agrupar as formas de pagamento.', 500 ); }
         foreach ( $payments as &$payment ) { $payment['name'] = self::PAYMENTS[ $payment['payment_method'] ] ?? 'Não informado'; $payment['total'] = (float) $payment['total']; $payment['count'] = (int) $payment['count']; } unset( $payment );
-        return array( 'summary' => $summary, 'categories' => $categories, 'trend' => $trend, 'trend_unit' => $monthly ? 'month' : 'day', 'payments' => $payments, 'filters' => $f );
+        $recent = $wpdb->get_results( "SELECT e.*,c.name AS category_name,c.color AS category_color,c.active AS category_active FROM ($source) e INNER JOIN {$wpdb->prefix}pds_expense_categories c ON c.id=e.category_id AND c.user_id=e.user_id ORDER BY e.spent_on DESC,e.id DESC,e.installment_no DESC LIMIT 5", ARRAY_A );
+        if ( $wpdb->last_error ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível consultar os lançamentos do período.', 500 ); }
+        $recent = array_map( static function ( $row ) { $row = self::cast( $row ); $row['is_installment'] = (bool) $row['is_installment']; foreach ( array( 'installment_no', 'installment_total' ) as $key ) { $row[ $key ] = null === $row[ $key ] ? null : (int) $row[ $key ]; } return $row; }, $recent );
+        if ( false === $wpdb->query( 'COMMIT' ) ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível concluir o dashboard.', 500 ); }
+        return array( 'basis' => 'invoice_installments', 'summary' => $summary, 'categories' => $categories, 'trend' => $trend, 'trend_unit' => $monthly ? 'month' : 'day', 'payments' => $payments, 'recent' => $recent, 'filters' => $f );
     }
 }

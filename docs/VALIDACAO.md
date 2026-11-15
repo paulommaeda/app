@@ -316,3 +316,28 @@ Validação em 15 de novembro de 2026. A suíte completa reúne **1.231 verifica
 
 Os cenários usam contas fictícias no WordPress local. Nenhuma operação é enviada
 para bancos ou provedores de cartão.
+
+
+## Dashboard mensal pelas parcelas — 1.14.0
+
+Validação em 15 de novembro de 2026. A suíte completa reúne **1.292 verificações**.
+
+* 38 verificações de integração: compra de R$ 500/5 contribuindo R$ 100 por mês,
+  limite do cronograma, período com vários meses, filtros e consulta do valor original.
+* Categorias, pagamentos, maior lançamento, média, evolução e lançamentos recentes
+  usam os mesmos valores individuais das parcelas; mês inicial inclui vencimentos futuros.
+* Fechamento correto, compra em mês anterior, datas personalizadas, comparação de
+  meses completos, crédito à vista e combinação com Pix/débito na data original.
+* Importação na parcela 4/6 sem recriar o passado, conferência posterior de valor,
+  centavos exatos, cartões/categorias arquivados e ausência de duplicação ao pagar.
+* Previsões de assinatura continuam fora do gasto realizado; cobranças confirmadas
+  entram na fatura correspondente. Isolamento, bloqueios, edição/exclusão e migração.
+* 23 verificações pelo navegador: cadastro real de R$ 500/5, totais/gráficos de R$ 100,
+  consulta de R$ 500, histórico, navegação mensal, compras antigas, filtros e centavos.
+* Interfaces em 320, 390, 768 e 1440 pixels e ausência de erros JavaScript.
+* Regressão dos demais serviços; verificações anteriores de compartilhamento e
+  pagamentos passam a validar a semântica mensal, com os valores originais preservados.
+* Atualização nativa mantém usuários, cronogramas, compras e todas as tabelas financeiras.
+
+Os testes usam dados fictícios no WordPress local, sem acesso a contas bancárias
+ou alteração de registros de produção.

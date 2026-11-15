@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.13.0
+Stable tag: 1.14.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,7 @@ catálogo de serviços, Meu Combustível e Meu Financeiro.
 * Recorrências geram previsões; datas de vencimento nunca dão baixa automática.
 * Faturas dos cartões aparecem mensalmente nas contas a pagar com os gastos reais.
 * Gastos, contas, recebimentos, cartões, faturas e dashboard privados por usuário.
+* Dashboard mensal soma as parcelas de cada fatura; valor integral fica na consulta da compra.
 * Abastecimentos novos geram gastos automaticamente para quem registrou.
 * Crédito à vista ou em até 120 parcelas, distribuídas por fechamento/vencimento.
 * Importação de fatura CSV/OFX e PDF pelo Gemini, com conferência e parcelas futuras.
@@ -163,6 +164,17 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.14.0 =
+* Dashboard soma somente as parcelas do mês da fatura, usando seus valores exatos.
+* Compra de R$ 500 em cinco vezes aparece como R$ 100 em cada mês, preservando o valor integral na consulta.
+* Categorias, formas de pagamento, maior lançamento, média e evolução seguem a mesma base mensal.
+* Lançamentos do dashboard mostram parcela e fatura, inclusive de compras feitas em meses anteriores.
+* Seletor de mês com navegação anterior/próximo e mês completo como período inicial.
+* Comparação mensal usa o mês anterior completo; filtros de dias seguem o vencimento de cada parcela.
+* Histórico e CSV mantêm o valor total cadastrado; Consultar compra abre o registro original.
+* Importações, centavos, alterações de compra e cartões arquivados usam o cronograma existente.
+* Atualização preserva usuários, compras, parcelas, faturas, pagamentos e saldos das contas.
 
 = 1.13.0 =
 * Extrato por conta e período, com saldo anterior, entradas, saídas e saldo final.
