@@ -116,7 +116,7 @@ final class PDS_Expenses {
         if ( $id && is_wp_error( $old = self::get_entry( $id ) ) ) { return $old; }
         $amount = self::amount( $request->get_param( 'amount' ) ); if ( is_wp_error( $amount ) ) { return $amount; }
         if ( $id && $old['fuel_record_id'] && ( abs( (float) $old['amount'] - (float) $amount ) > 0.000001 || $request->get_param( 'spent_on' ) !== $old['spent_on'] ) ) { return self::error( 'Altere o valor e a data desse gasto no registro original em Meu Combustível.', 409 ); }
-        if ( $id && $old['payable_id'] && ( abs( (float) $old['amount'] - (float) $amount ) > 0.000001 || $request->get_param( 'spent_on' ) !== $old['spent_on'] ) ) { return self::error( 'Corrija a baixa dessa despesa em Contas a pagar.', 409 ); }
+        if ( $id && $old['payable_id'] && (int) ( $options['payable_correction'] ?? 0 ) !== (int) $old['payable_id'] && ( abs( (float) $old['amount'] - (float) $amount ) > 0.000001 || $request->get_param( 'spent_on' ) !== $old['spent_on'] ) ) { return self::error( 'Corrija a baixa dessa despesa em Contas a pagar.', 409 ); }
         $date = $request->get_param( 'spent_on' ); $description = $request->get_param( 'description' ); $payment = $request->get_param( 'payment_method' ) ?? ''; $merchant = $request->get_param( 'merchant' ) ?? ''; $notes = $request->get_param( 'notes' ) ?? '';
         if ( ! self::valid_date( $date ) || $date > current_time( 'Y-m-d' ) ) { return self::error( 'Informe uma data válida, até hoje, para o gasto realizado.' ); }
         if ( ! is_string( $description ) || ! is_string( $merchant ) || ! is_string( $notes ) || ! is_string( $payment ) || ! array_key_exists( $payment, self::PAYMENTS ) ) { return self::error( 'Confira a descrição, a forma de pagamento e as observações.' ); }

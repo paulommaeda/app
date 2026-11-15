@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.12.0
+Stable tag: 1.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -41,6 +41,8 @@ catálogo de serviços, Meu Combustível e Meu Financeiro.
 * Rateio na compra, na fatura ou na prévia de importação, aplicado às próximas parcelas.
 * Assinaturas mensais do cartão com identificação de serviços e gestão particular.
 * Próxima cobrança prevista após cada fechamento, com conferência sem duplicar o gasto.
+* Extratos por conta e período, com entradas, saídas e saldo após cada movimento.
+* Edição e exclusão pelo extrato, sincronizadas com recebimentos, gastos e pagamentos.
 
 == Installation ==
 
@@ -161,6 +163,19 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.13.0 =
+* Extrato por conta e período, com saldo anterior, entradas, saídas e saldo final.
+* Movimentos em ordem de data, com saldo acumulado correto em todas as páginas.
+* Atalho Ver extrato em cada conta, incluindo contas arquivadas e saldo inicial.
+* Edição de valor, data, conta, descrição e campos próprios de cada movimento.
+* Transferências editáveis na origem e no destino, preservando um único registro.
+* Pagamentos de faturas e contas a pagar corrigidos com seus vínculos preservados.
+* Abastecimentos editados e excluídos pelo extrato com sincronização do registro original.
+* Exclusões recalculam os saldos; transferências são estornadas nas duas contas.
+* Recebimentos recorrentes e reembolsos cancelados não são recriados após excluir.
+* Limites de fatura, datas iniciais, permissões e transações protegem as correções.
+* Layout de extrato e formulários adaptado para computador e celular.
 
 = 1.12.0 =
 * Área Assinaturas com serviços mensais por cartão, categoria, valor, dia e observações.

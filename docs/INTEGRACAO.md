@@ -476,3 +476,47 @@ Faturas com pagamentos permitem substituição pelo mesmo valor, mantendo totais
 pagos e em aberto; alterações de valor retornam 409. Recebimentos e pagamentos
 não são criados pela geração ou confirmação. Novos cadastros, ocorrências e
 campos integram privacidade e atualização nativa.
+
+
+## Extrato de contas e correções — 1.13.0
+
+Rotas autenticadas com nonce e a mesma permissão do serviço `gastos`:
+
+* `GET /pds/v1/finance/accounts/{account_id}/statement`: `from`, `to`, `page`
+  e `per_page` (1–100, padrão 50). Período de até dois anos. Retorna `account`,
+  `movements`, `balance_before`, `credits`, `debits`, `opening_in_period`,
+  `balance_after`, `total`, `page`, `pages` e `per_page`.
+* `GET /finance/accounts/{account_id}/statement/{kind}/{id}`: contexto de edição,
+  com `editor`, `data`, `edit_note` e `delete_message` próprios da origem.
+* `PUT` na mesma rota: data real em `date`, valor em `amount` e os campos próprios
+  do editor. `account_id` move recebimentos, gastos e pagamentos para outra conta
+  própria. Transferências usam `from_account_id` e `to_account_id`. A rota preserva
+  os vínculos e não aceita alterar origem, proprietário ou situação por parâmetros.
+* `DELETE` na mesma rota: desfaz o efeito financeiro usando a operação original.
+
+`kind` é `opening`, `receipt`, `expense`, `payment` ou `transfer`. `id` é o ID
+original do movimento; para saldo inicial, o ID da conta. Uma despesa vinculada
+pode retornar `editor=payable` ou `editor=fuel`, preservando `kind=expense`.
+O movimento precisa efetivamente pertencer ao extrato da conta indicada.
+
+A listagem usa UNION ALL das tabelas nativas em snapshot consistente, com datas
+já realizadas e regras equivalentes ao saldo da conta. O saldo inicial é separado
+da renda/despesa do período. A ordenação estável conserva os saldos entre páginas.
+Cada item tem `key`, `kind`, `id`, `date`, `description`, `source`, `notes`,
+`amount` absoluto, `signed_amount` e `balance`. Não existe tabela paralela de extrato.
+
+`PUT /finance/transfers/{id}` permite corrigir transferências concluídas. Mantém
+`request_key`, ID e uma única linha, bloqueia as contas em ordem de ID e valida
+origem/destino próprios, situação e datas iniciais. Reversões continuam usando
+`POST /finance/transfers/{id}/reverse` e não podem ser reativadas por edição.
+
+A correção de uma baixa mantém a transação externa e usa uma opção interna de
+`save_entry`, restrita ao vínculo de conta a pagar conferido pelo servidor. Clientes
+REST não podem forjar essa opção. Pagamentos de fatura são corrigidos sob bloqueio
+da fatura/pagamento, considerando a soma dos demais pagamentos. Abastecimentos
+seguem o método original de gravação, com sincronização e validação de quilometragem.
+Recebimentos recorrentes e reembolsos excluídos mantêm uma ocorrência cancelada.
+
+Editar a data inicial de uma conta verifica também recebimentos, despesas diretas
+e pagamentos já incluídos no saldo, além das transferências existentes. A consulta
+e as alterações respeitam propriedade, arquivamento e bloqueios de serviço.

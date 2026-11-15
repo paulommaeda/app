@@ -69,7 +69,7 @@ final class PDS_Finance {
         $data = array( 'name' => $name, 'opening_balance' => self::decimal( $opening ), 'opening_on' => $date, 'kind' => $kind, 'active' => $active );
         if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return self::error( 'Não foi possível iniciar o cadastro da conta.', 500 ); }
         if ( $id ) {
-            $locked = $wpdb->get_row( $wpdb->prepare( "SELECT id,kind FROM {$wpdb->prefix}pds_fin_accounts WHERE id=%d AND user_id=%d FOR UPDATE", $id, get_current_user_id() ), ARRAY_A );
+            $locked = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_accounts WHERE id=%d AND user_id=%d FOR UPDATE", $id, get_current_user_id() ), ARRAY_A );
             if ( ! $locked || $wpdb->last_error ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Conta não encontrada ou em atualização.', 409 ); }
         }
         $type_check = PDS_Finance_Account_Types::validate( $kind, $id ? $locked['kind'] : '' );
@@ -77,6 +77,7 @@ final class PDS_Finance {
         if ( $id ) {
             $check = PDS_Finance_Transfers::check_account_date( $id, get_current_user_id(), $date );
             if ( is_wp_error( $check ) ) { $wpdb->query( 'ROLLBACK' ); return $check; }
+            $check = PDS_Finance_Statement::check_opening_date( $locked, $date ); if ( is_wp_error( $check ) ) { $wpdb->query( 'ROLLBACK' ); return $check; }
             $ok = $wpdb->update( $wpdb->prefix . 'pds_fin_accounts', $data, array( 'id' => $id, 'user_id' => get_current_user_id() ) );
             if ( false === $ok ) { $wpdb->query( 'ROLLBACK' ); return self::error( 'Não foi possível salvar a conta.', 500 ); }
         } else {

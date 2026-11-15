@@ -18,6 +18,9 @@ final class PDS_Finance_Transfers {
         register_rest_route( 'pds/v1', '/finance/transfers/(?P<id>\d+)/reverse', array(
             'methods' => 'POST', 'callback' => array( __CLASS__, 'reverse' ), 'permission_callback' => array( 'PDS_Expenses', 'permission' ),
         ) );
+        register_rest_route( 'pds/v1', '/finance/transfers/(?P<id>\d+)', array(
+            'methods' => 'PUT', 'callback' => array( __CLASS__, 'edit' ), 'permission_callback' => array( 'PDS_Expenses', 'permission' ),
+        ) );
     }
 
     private static function positive_id( $value ) {
@@ -71,6 +74,31 @@ final class PDS_Finance_Transfers {
         $id = (int) $wpdb->insert_id;
         if ( false === $wpdb->query( 'COMMIT' ) ) { return self::rollback( 'Não foi possível confirmar a transferência. Tente novamente.', 500 ); }
         return array( 'id' => $id, 'status' => 'completed', 'duplicate' => false );
+    }
+
+    /** Corrections keep one transfer identity and update both account ledgers together. */
+    public static function edit( WP_REST_Request $r ) {
+        global $wpdb; $uid = get_current_user_id(); $id = self::positive_id( $r->get_url_params()['id'] ?? 0 );
+        $old = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_transfers WHERE id=%d AND user_id=%d", $id, $uid ), ARRAY_A );
+        if ( ! $old ) { return PDS_Finance::error( 'Transferência não encontrada ou sem acesso.', 404 ); }
+        $from = self::positive_id( $r->get_param( 'from_account_id' ) ?? $old['from_account_id'] ); $to = self::positive_id( $r->get_param( 'to_account_id' ) ?? $old['to_account_id'] );
+        $cents = PDS_Finance::cents( $r->get_param( 'amount' ) ?? $old['amount'] ); if ( is_wp_error( $cents ) ) { return $cents; }
+        $date = $r->get_param( 'transferred_on' ) ?? $old['transferred_on']; $notes = $r->get_param( 'notes' ) ?? $old['notes'];
+        if ( ! $from || ! $to || $from === $to || $cents <= 0 ) { return PDS_Finance::error( 'Escolha duas contas diferentes e um valor positivo.' ); }
+        if ( ! PDS_Expenses::valid_date( $date ) || $date > current_time( 'Y-m-d' ) ) { return PDS_Finance::error( 'Informe a data real da transferência, até hoje.' ); }
+        if ( ! is_string( $notes ) || mb_strlen( $notes ) > 500 ) { return PDS_Finance::error( 'Use até 500 caracteres nas observações.' ); }
+        if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return PDS_Finance::error( 'Não foi possível iniciar a correção.', 500 ); }
+        $accounts = $wpdb->get_results( $wpdb->prepare( "SELECT id,active,opening_on FROM {$wpdb->prefix}pds_fin_accounts WHERE user_id=%d AND id IN (%d,%d,%d,%d) ORDER BY id FOR UPDATE", $uid, $from, $to, $old['from_account_id'], $old['to_account_id'] ), ARRAY_A );
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_transfers WHERE id=%d AND user_id=%d FOR UPDATE", $id, $uid ), ARRAY_A );
+        if ( $wpdb->last_error || ! $row || 'completed' !== $row['status'] || $row['from_account_id'] !== $old['from_account_id'] || $row['to_account_id'] !== $old['to_account_id'] ) { return self::rollback( 'A transferência mudou ou foi estornada. Atualize o extrato.', 409 ); }
+        $banks = array_column( $accounts, null, 'id' ); if ( ! isset( $banks[ $from ], $banks[ $to ] ) ) { return self::rollback( 'Conta não encontrada ou sem acesso.', 404 ); }
+        foreach ( array( $from, $to ) as $aid ) {
+            if ( ! $banks[ $aid ]['active'] && ! in_array( $aid, array( (int) $row['from_account_id'], (int) $row['to_account_id'] ), true ) ) { return self::rollback( 'Escolha contas ativas para alterar a origem ou o destino.', 409 ); }
+            if ( $date < $banks[ $aid ]['opening_on'] ) { return self::rollback( 'A data deve ser posterior ou igual ao saldo inicial das duas contas.', 400 ); }
+        }
+        $data = array( 'from_account_id' => $from, 'to_account_id' => $to, 'amount' => PDS_Finance::decimal( $cents ), 'transferred_on' => $date, 'notes' => sanitize_text_field( trim( $notes ) ) );
+        if ( false === $wpdb->update( $wpdb->prefix . 'pds_fin_transfers', $data, array( 'id' => $id, 'user_id' => $uid ) ) ) { return self::rollback( 'Não foi possível corrigir a transferência.', 500 ); }
+        if ( false === $wpdb->query( 'COMMIT' ) ) { return self::rollback( 'Não foi possível confirmar a transferência.', 500 ); } return array( 'id' => $id, 'status' => 'completed', 'success' => true );
     }
 
     public static function reverse( WP_REST_Request $r ) {

@@ -36,7 +36,9 @@ continue usando **Registrar gasto** com o total e o número de parcelas.
 
 **Desfazer baixa** remove a despesa vinculada e restaura a previsão pendente e
 seu efeito no saldo. Para mudar valor/data ou excluir o gasto gerado, faça a
-correção pela conta original. Compras ligadas a faturas com pagamento registrado
+correção pela conta original. A partir de 1.13.0, pagamentos feitos por uma conta
+bancária também podem ser corrigidos em **Extratos → Editar**; excluir a baixa
+pelo extrato reabre somente essa ocorrência como pendente. Compras ligadas a faturas com pagamento registrado
 exigem corrigir/remover esse pagamento primeiro, conforme as regras das faturas.
 Repetir a mesma baixa não gera uma segunda despesa.
 

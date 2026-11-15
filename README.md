@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.12.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.13.0.zip)**
 
 ## Instalação
 
@@ -40,7 +40,7 @@ Quando uma versão nova é publicada, ela aparece em **Plugins** e **Painel →
 Atualizações**. É possível ativar a atualização automática pelo controle nativo
 do WordPress. O pacote baixado tem sua integridade SHA-256 conferida antes da instalação.
 
-Se já instalou a versão 1.0.0, envie o ZIP 1.12.0 uma vez pelo WordPress e escolha
+Se já instalou a versão 1.0.0, envie o ZIP 1.13.0 uma vez pelo WordPress e escolha
 substituir a instalação atual. As próximas versões poderão ser atualizadas pelo painel.
 
 Para publicar uma versão nova:
@@ -218,3 +218,18 @@ ou **Excluir**, mantendo as cobranças históricas. **Não houve cobrança**, no
 detalhes da fatura, remove somente aquela previsão. Esses controles organizam
 os registros do portal; o cancelamento com o fornecedor deve ser feito no próprio
 serviço. Consulte o [manual de assinaturas](docs/ASSINATURAS.md).
+
+
+## Extrato das contas (1.13.0)
+
+Abra **Meu Financeiro → Extratos** ou use **Contas → Ver extrato**. Selecione a
+conta e o período para ver saldo anterior, entradas, saídas, saldo final e o saldo
+após cada movimento. O histórico inclui recebimentos realizados, gastos pagos
+pela conta, pagamentos de fatura e as duas direções de transferências internas.
+
+Use **Editar** ou **Excluir** na própria linha. Corrija data, valor, conta e os
+campos de cada origem. Uma transferência é corrigida ou estornada nas duas contas;
+um pagamento de fatura mantém as compras; excluir a baixa de uma conta a pagar
+reabre essa ocorrência como pendente. Abastecimentos acompanham o registro original.
+As confirmações mostram o efeito de cada exclusão antes de aplicar. Consulte o
+[manual de extratos](docs/EXTRATOS.md).

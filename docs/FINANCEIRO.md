@@ -209,8 +209,9 @@ permitidos, como nos demais movimentos do controle financeiro.
 
 O histórico tem filtros por mês da transferência, conta envolvida (origem ou
 destino) e situação, com 50 registros por página. Renomear/arquivar uma conta
-preserva o histórico. Para corrigir origem, destino, data ou valor, use
-**Estornar registro** e cadastre novamente. O estorno exige confirmação, desfaz
+preserva o histórico. A partir de 1.13.0, corrija origem, destino, data e valor
+em **Extratos → Editar**, mantendo o mesmo registro e os dois saldos sincronizados.
+Também é possível usar **Estornar registro** e cadastrar novamente. O estorno exige confirmação, desfaz
 o efeito do movimento original nos saldos, inclusive nos saldos históricos, e
 mantém a linha identificada como **Estornada**. Pode ser feito mesmo se a conta
 foi arquivada. Repetir um estorno ou reenviar o mesmo salvamento após uma falha
@@ -276,3 +277,7 @@ receber. Nenhuma confirmação de recebimento ocorre automaticamente.
 
 Consulte o [manual de cartão compartilhado](CARTAO-COMPARTILHADO.md) para ativação,
 correções, recebimento e preservação dos dados quando a opção é desativada.
+
+
+Consulte também [Extrato de movimentação das contas](EXTRATOS.md) para consultar
+saldos por período e editar ou excluir movimentos pelos seus registros originais.

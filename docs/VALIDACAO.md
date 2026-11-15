@@ -287,3 +287,32 @@ Validação em 14 de novembro de 2026. A suíte completa reúne **1.135 verifica
 
 Os testes usam serviços e contas fictícias no WordPress local, sem cobrança,
 contato com fornecedores ou acesso a dados bancários de produção.
+
+
+## Extrato das contas — 1.13.0
+
+Validação em 15 de novembro de 2026. A suíte completa reúne **1.231 verificações**.
+
+* 69 verificações de integração: tipos de movimento, saldo anterior/final,
+  totalização do período, saldo inicial positivo/negativo, centavos e paginação.
+* Ausência de previsões e compras no crédito no extrato bancário; pagamentos
+  efetivos de faturas aparecem no momento correto, sem duplicar gastos.
+* Edição e exclusão de recebimentos, gastos, transferências, pagamentos de fatura,
+  baixas de contas a pagar, abastecimentos e saldo inicial, preservando identidades.
+* Mudança de conta recalcula os dois históricos; estorno de transferência mantém
+  um único registro; correção de pagamento considera os demais pagamentos da fatura.
+* Baixa excluída reabre a conta; recebimentos recorrentes/reembolsos cancelados
+  não são regenerados. Permissões e vínculo com a pessoa/compra ficam preservados.
+* Falhas intermediárias de pagamentos e baixas revertem as alterações; dados de
+  abastecimento inválidos não mudam o financeiro; opções internas não são forjáveis.
+* Isolamento por usuário/conta, filtros e datas inválidos, destino antes da data
+  inicial, contas arquivadas, bloqueios de serviços e migração idempotente.
+* 27 verificações pelo navegador: atalho de conta, consulta, totais, todas as
+  famílias de editores/exclusões e paginação continuada com 56 movimentos.
+* Interfaces em 320, 390, 768 e 1440 pixels; os botões de cada movimento permanecem
+  visíveis no celular. Formulários revisados e sem erros JavaScript.
+* Regressão completa dos serviços anteriores e atualização nativa preservando
+  usuários, contas e todas as tabelas financeiras, sem criar movimentos duplicados.
+
+Os cenários usam contas fictícias no WordPress local. Nenhuma operação é enviada
+para bancos ou provedores de cartão.
