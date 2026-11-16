@@ -1,7 +1,7 @@
 <?php defined( 'ABSPATH' ) || exit; ?>
 <section class="pds-card pds-account-card pds-telegram-card" id="pds-telegram-account" style="margin-top:22px">
     <div class="pds-card-heading"><h2>Telegram</h2><span id="pds-tg-badge" class="pds-tag">Carregando</span></div>
-    <p class="pds-muted">Registre abastecimentos, gastos e recebimentos por áudio ou texto, direto na conversa com o bot.</p>
+    <p class="pds-muted">Registre abastecimentos, gastos e recebimentos por áudio ou texto. Use /baixar para dar baixa em contas e recebimentos previstos, ou /pendentes para escolher uma previsão.</p>
     <p class="pds-muted">O Telegram recebe suas mensagens, e o conteúdo necessário é enviado a <strong id="pds-tg-provider-name"><?php echo esc_html( PDS_Telegram_Client::provider_name() ); ?></strong> para reconhecimento, somente nos serviços e veículos liberados para sua conta.</p>
     <p id="pds-tg-gemini-note" class="pds-muted" hidden>Na faixa gratuita do Gemini, o Google pode usar o conteúdo para melhorar seus produtos. Evite incluir informações pessoais desnecessárias nas mensagens.</p>
     <div id="pds-tg-message" class="pds-alert" role="status" hidden></div>

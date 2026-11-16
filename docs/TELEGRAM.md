@@ -266,7 +266,7 @@ o bot ou apagar os dados pelas ferramentas de privacidade do WordPress.
 
 Envie um lançamento por mensagem. Transferências entre contas próprias e estornos de cartão não são novas receitas.
 Desde 1.7.0, promessas de pagamento podem ser cadastradas como **A receber** pelo
-Telegram; somente a confirmação posterior no portal altera o saldo. O bot registra o que você informou;
+Telegram; a realização informada depois pelo Telegram (/baixar) ou pelo portal altera o saldo. O bot registra o que você informou;
 não realiza transferência nem consulta seu banco.
 
 ## Contas a pagar e previsões (1.7.0)
@@ -296,10 +296,19 @@ e vencimento de contas precisam estar claros. Valores de contas variáveis podem
 ficar **a definir**; o bot não inventa valores de luz/telefone.
 
 O cadastro segue a preferência individual/global de confirmação. Confirmar um
-cadastro de previsão não confirma um pagamento ou recebimento. Para **dar baixa**,
-abra o lançamento no portal e informe o valor e a data efetivamente realizados.
-Uma entrada futura deve ser baixada na própria previsão com **Marcar recebido**.
-Dizer “recebi” sem uma previsão selecionada cadastra um novo recebimento realizado;
-não registra automaticamente a baixa de uma previsão anterior. Da mesma forma,
-um gasto já registrado separadamente não deve ser novamente baixado como outra
-despesa. Gerencie a previsão original pelo portal para manter um único movimento.
+cadastro de previsão não confirma um pagamento ou recebimento. A partir de
+**1.17.0**, use **/baixar** ou **/pendentes** para realizar a própria previsão pelo
+Telegram, com valor e data reais. Mensagens comuns que correspondem a uma previsão
+são apresentadas como baixa para revisão; sem uma previsão identificável, continuam
+sendo novos lançamentos. Consulte [BAIXAS-TELEGRAM.md](BAIXAS-TELEGRAM.md) para exemplos,
+seleção de mês, reembolsos, faturas e proteção contra duplicação.
+
+## Baixas de previsões — 1.17.0
+
+Envie texto ou áudio: **“Paguei a luz prevista de novembro, 195 reais ontem no Pix
+pela conta C6 PJ”**, ou **“Recebi o salário previsto de novembro, 2 mil reais hoje
+na C6 PJ”**. O bot localiza a previsão do usuário e pede escolha se houver várias.
+A baixa usa o lançamento original e apenas a ocorrência escolhida da recorrência.
+Também aceita reembolsos e pagamentos parciais de faturas. Use **/pendentes** para
+escolher uma previsão e **/baixar** para ver a ajuda. Complementos, confirmação,
+expiração e cancelamento seguem a mesma conversa privada. Veja [o guia completo](BAIXAS-TELEGRAM.md).

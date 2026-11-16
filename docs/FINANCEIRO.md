@@ -300,3 +300,12 @@ Resgate somente o necessário por uma transferência para uma conta de uso diár
 ou faça um aporte pelo caminho inverso. Saldos, extratos e o patrimônio total das
 contas são preservados, sem receita ou gasto duplicado. Para regras, exemplos,
 filtros e efeito das alterações de finalidade, veja [INVESTIMENTOS.md](INVESTIMENTOS.md).
+
+## Realizar previsões pelo Telegram — 1.17.0
+
+**/baixar** e **/pendentes** permitem baixar contas e recebimentos que já estão
+previstos. Texto e áudio usam o mesmo vínculo, com valor/data reais, conta e forma
+de pagamento quando necessária. O recebimento mantém seu registro; a conta gera
+somente o gasto vinculado. Recorrências baixam apenas o mês selecionado. Faturas
+usam seus pagamentos, inclusive parciais, e reembolsos mantêm compra e pessoa.
+Confira [BAIXAS-TELEGRAM.md](BAIXAS-TELEGRAM.md) para regras e exemplos.

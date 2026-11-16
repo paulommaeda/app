@@ -610,3 +610,47 @@ previstas e pagamentos de faturas não são despesas adicionais nessa fonte.
   privados por usuário. A consulta do fluxo usa snapshot transacional consistente.
 * Migração acrescenta `pds_fin_account_types.is_reserve` com default 0. Exportação
   e apagamento de privacidade incluem a finalidade e seguem o usuário WordPress.
+
+## Baixa de previsões pelo Telegram — 1.17.0
+
+O reconhecimento aceita `intent: settlement` e o objeto `settlement`, exclusivo
+com combustível, expense, receipt e payable. Campos: kind (payable/receipt/invoice),
+description, amount real, paid_on real, expected_on, reference_month, account_hint,
+card_hint, payment_method, notes e uncertain_fields. Nenhum ID de previsão, conta
+ou cartão é aceito do modelo. Provedores/fixtures legados sem a propriedade
+settlement continuam aceitos como null para outros intents.
+
+O servidor consulta somente previsões pendentes do usuário vinculado e oferece
+até oito escolhas por resumo. Faturas são consultadas em conjunto limitado,
+priorizando datas próximas; informar o mês restringe a busca. A conversa suporta
+complementos, /baixar, /pendentes, /confirmar e /cancelar, além dos callbacks
+`pds_set_pick`, `pds_set_save` e `pds_set_cancel`, com token aleatório e prazo de
+expiração. O contexto de reconhecimento exclui IDs, tokens e snapshots internos.
+
+`pds_tg_settlement_drafts` guarda a conversa temporária. `pds_fin_settlements`
+registra a identidade única por usuário e evento, o alvo e o movimento efetivo.
+O `record_service` da fila é `baixas`, e seu record_id aponta para essa identidade.
+O evento inicial e o de confirmação recebem a mesma identidade na transação.
+Recuperação da fila e da entrega responde a partir do registro já concluído.
+
+A baixa bloqueia e compara a previsão escolhida, revalida vínculo, bot, provedor,
+serviço, conta ativa e data, e chama os mesmos lançamentos financeiros do portal.
+Os métodos internos pay, save_receipt, save_receipt compartilhado e pay_invoice
+aceitam participação em uma transação externa; o parâmetro não é exposto no REST.
+A transação externa mantém baixa, movimento e identidade juntos. Falha em qualquer
+passo desfaz todos. Eventos de criação de despesa disparam somente após commit.
+
+Uma conta paga usa o gasto ligado à previsão; um recebimento atualiza a linha
+existente, incluindo os vínculos de recorrência ou reembolso; a fatura cria seu
+pagamento próprio. Reservas continuam seguindo a finalidade do tipo da conta.
+Valores previstos não são usados como valores realizados sem informação do usuário.
+Confirmações antigas não autorizam previsões alteradas, canceladas ou já realizadas.
+
+Mensagens comuns com descrição compatível podem ser convertidas em revisão de
+baixa. O escopo é uma previsão por mensagem. Mensagens futuras continuam criando
+somente previsões. Operações novas independentes podem ser direcionadas pelos
+comandos explícitos de gasto/recebimento. Repetições naturais de previsão com mesmo
+valor e data são identificadas antes de inserir outro movimento.
+
+Exportação e apagamento incluem a identidade financeira. Desvincular e expirar a
+conversa removem apenas os rascunhos, preservando a realização já registrada.

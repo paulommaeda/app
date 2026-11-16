@@ -119,6 +119,6 @@ final class PDS_Telegram_Receipts {
         $account = PDS_Finance::find( 'accounts', $row['account_id'] );
         if ( is_wp_error( $account ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira Recebimentos no portal.' ); }
         if ( $row['status'] === 'canceled' ) { return PDS_Telegram::reply( "Previsão de recebimento cancelada.\n" . self::summary( $row, $account['name'] ) . "\nConfira o histórico no portal." ); }
-        return PDS_Telegram::reply( ( $row['status'] === 'pending' ? "Recebimento previsto cadastrado!\n" : "Recebimento registrado!\n" ) . self::summary( $row, $account['name'] ) . ( $row['status'] === 'pending' ? "\nO saldo não foi alterado. Quando receber, confirme o valor e a data em Meu Financeiro → Recebimentos → Marcar recebido." : "\nConfira em Meu Financeiro → Recebimentos. O saldo considera a data inicial da conta." ) );
+        return PDS_Telegram::reply( ( $row['status'] === 'pending' ? "Recebimento previsto cadastrado!\n" : "Recebimento registrado!\n" ) . self::summary( $row, $account['name'] ) . ( $row['status'] === 'pending' ? "\nO saldo não foi alterado. Quando receber, informe o valor e a data pelo Telegram (/baixar) ou em Meu Financeiro → Recebimentos → Marcar recebido." : "\nConfira em Meu Financeiro → Recebimentos. O saldo considera a data inicial da conta." ) );
     }
 }

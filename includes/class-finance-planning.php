@@ -230,10 +230,10 @@ final class PDS_Finance_Planning {
         if ( 'all' !== $filter ) { $rows = array_values( array_filter( $rows, static fn( $row ) => $row['status'] === $filter && 'empty' !== $row['state'] ) ); }
         return array( 'month' => $month, 'items' => $rows, 'pending_total' => round( $pending, 2 ), 'paid_total' => round( $paid, 2 ), 'unknown_count' => $unknown, 'warnings' => $warnings );
     }
-    public static function pay( WP_REST_Request $r ) {
-        global $wpdb; $uid = get_current_user_id(); $wpdb->query( 'START TRANSACTION' ); $bill = self::find( 'payables', self::id( $r ), $uid, true );
+    public static function pay( WP_REST_Request $r, $in_transaction = false ) {
+        global $wpdb; $uid = get_current_user_id(); if ( ! $in_transaction ) { $wpdb->query( 'START TRANSACTION' ); } $bill = self::find( 'payables', self::id( $r ), $uid, true );
         if ( is_wp_error( $bill ) ) { $wpdb->query( 'ROLLBACK' ); return $bill; }
-        if ( 'paid' === $bill['status'] ) { $wpdb->query( 'COMMIT' ); return array( 'id' => (int) $bill['id'], 'expense_id' => (int) $bill['expense_id'], 'already_paid' => true ); }
+        if ( 'paid' === $bill['status'] ) { if ( ! $in_transaction ) { $wpdb->query( 'COMMIT' ); } return array( 'id' => (int) $bill['id'], 'expense_id' => (int) $bill['expense_id'], 'already_paid' => true ); }
         if ( 'pending' !== $bill['status'] ) { $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( 'Reabra a previsão cancelada antes de registrar um pagamento.', 409 ); }
         $method = $r->get_param( 'payment_method' ); $account = $r->get_param( 'account_id' ) ?? $bill['account_id'];
         if ( ! is_string( $method ) || ! isset( PDS_Expenses::PAYMENTS[ $method ] ) || '' === $method || ( 'credit' !== $method && ( is_wp_error( self::positive_id( $account ) ) ) ) ) { $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( 'Informe a forma de pagamento e a conta de saída (ou o cartão de crédito).' ); }
@@ -246,7 +246,7 @@ final class PDS_Finance_Planning {
         $saved = PDS_Expenses::save_entry( $request, 'payable:' . hash( 'sha256', $uid . '|' . $bill['id'] ), array( 'payable_id' => $bill['id'], 'in_transaction' => true ) );
         if ( is_wp_error( $saved ) || (int) ( $saved['payable_id'] ?? 0 ) !== (int) $bill['id'] ) { $wpdb->query( 'ROLLBACK' ); return is_wp_error( $saved ) ? $saved : PDS_Finance::error( 'O pagamento não corresponde a esta previsão.', 409 ); }
         if ( false === $wpdb->update( $wpdb->prefix . 'pds_fin_payables', array( 'status' => 'paid', 'expense_id' => $saved['id'], 'updated_at' => current_time( 'mysql', true ) ), array( 'id' => $bill['id'], 'user_id' => $uid ) ) ) { $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( 'Não foi possível concluir a baixa.', 500 ); }
-        $wpdb->query( 'COMMIT' ); do_action( 'pds_expense_created', $saved, $uid ); return array( 'id' => (int) $bill['id'], 'expense_id' => $saved['id'] );
+        if ( ! $in_transaction ) { $wpdb->query( 'COMMIT' ); } if ( ! $in_transaction ) { do_action( 'pds_expense_created', $saved, $uid ); } return array( 'id' => (int) $bill['id'], 'expense_id' => $saved['id'] );
     }
     /** Legacy DELETE cancels; force=true explicitly removes a bill from the portal. */
     public static function delete_payable( WP_REST_Request $r ) {

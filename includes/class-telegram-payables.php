@@ -60,7 +60,7 @@ final class PDS_Telegram_Payables {
         $wpdb->delete( $wpdb->prefix . 'pds_tg_payable_drafts', array( 'user_id' => $uid ) ); return self::saved_reply( $saved['id'] );
     }
     private static function summary( $data ) {
-        return $data['description'] . "\nValor previsto: " . ( null === $data['amount'] ? 'a definir' : 'R$ ' . number_format( (float) $data['amount'], 2, ',', '.' ) ) . "\nPrimeiro vencimento: " . implode( '/', array_reverse( explode( '-', $data['due_on'] ) ) ) . ( ( $data['recurrence'] ?? '' ) === 'monthly' || ! empty( $data['recurring_id'] ) ? "\nRecorrência: mensal" . ( ! empty( $data['occurrences'] ) ? ' por ' . $data['occurrences'] . ' meses' : '' ) : "\nLançamento único" ) . "\nBaixa: somente quando você confirmar o pagamento no portal.";
+        return $data['description'] . "\nValor previsto: " . ( null === $data['amount'] ? 'a definir' : 'R$ ' . number_format( (float) $data['amount'], 2, ',', '.' ) ) . "\nPrimeiro vencimento: " . implode( '/', array_reverse( explode( '-', $data['due_on'] ) ) ) . ( ( $data['recurrence'] ?? '' ) === 'monthly' || ! empty( $data['recurring_id'] ) ? "\nRecorrência: mensal" . ( ! empty( $data['occurrences'] ) ? ' por ' . $data['occurrences'] . ' meses' : '' ) : "\nLançamento único" ) . "\nBaixa: quando você informar o pagamento pelo Telegram (/baixar) ou confirmar no portal.";
     }
     public static function saved_reply( $id ) {
         if ( ! pds_user_can_access_service( 'gastos' ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira seu acesso a Meu Financeiro.' ); }

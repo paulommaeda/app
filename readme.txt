@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.16.0
+Stable tag: 1.17.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,6 +29,8 @@ catálogo de serviços, Meu Combustível e Meu Financeiro.
 * Importação do banco antigo por SQL/JSON ou leitura das tabelas existentes.
 * Telegram com vínculo individual, voz/texto, gastos, recebimentos e abastecimentos.
 * Recebimentos realizados ou futuros por voz/texto, com conta de destino e confirmação.
+* Baixas de contas e recebimentos previstos pelo Telegram, com escolha da ocorrência.
+* Pagamentos parciais de faturas e reembolsos previstos pelo mesmo bot, sem duplicação.
 * Contas a pagar únicas ou mensais, com edição, exclusão e baixa manual.
 * Correções de contas pagas recalculam o mesmo gasto, o saldo e a fatura.
 * Recorrências permitem alterar ou excluir só uma ocorrência ou esta e as próximas.
@@ -169,6 +171,20 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.17.0 =
+* Baixa de contas a pagar e recebimentos previstos por texto ou áudio no Telegram.
+* Reconhecimento distingue previsão cadastrada, realização e novo lançamento.
+* Comandos /baixar e /pendentes, com escolha de ocorrência e complementos de informação.
+* Valor, data real, conta financeira e forma de pagamento conferidos antes da baixa.
+* Recebimentos atualizam o registro original; contas pagas geram somente seu gasto vinculado.
+* Recorrências baixam somente a ocorrência escolhida, preservando os próximos meses.
+* Faturas aceitam pagamento parcial pelo bot, sem duplicar as compras do cartão.
+* Reembolsos compartilhados preservam pessoa, compra e parcela de origem.
+* Reservas seguem separadas do fluxo de uso diário ao realizar seus recebimentos.
+* Alterações, cancelamentos, exclusões e baixas no portal invalidam confirmações antigas.
+* Transações e identidade de evento impedem duplicação após reenvio ou falha de notificação.
+* Permissões, consentimento, expiração, desvinculação e privacidade incluem as baixas.
 
 = 1.16.0 =
 * Tipo Investimento / reserva e finalidade configurável nos tipos personalizados.

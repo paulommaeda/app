@@ -409,3 +409,38 @@ Os testes anteriores de tipos foram ajustados somente para reconhecer o quarto t
 padrão, preservando suas verificações de nomes, permissões, saldos e datas. O ZIP
 contém somente código, recursos e documentação do plugin. A atualização nativa
 confere o hash e executa o Plugin_Upgrader em uma instalação isolada.
+
+# Validação da versão 1.17.0
+
+Validação em WordPress 7.1.4, PHP 8.4 e MariaDB 11.8. A suíte completa reúne
+**1.507 verificações em 40 suítes**, incluindo todos os módulos anteriores.
+
+Novas verificações de baixas de previsões pelo Telegram:
+
+- **53 verificações de integração** da fila, reconhecimento e registros financeiros.
+- **23 verificações de navegador/HTTP** entre webhook, confirmação e telas do portal.
+- Contas e recebimentos usam valor/data reais e a identidade da previsão original.
+- Áudio segue o mesmo reconhecimento e confirmação do texto.
+- Recorrências e meses futuros baixam somente a ocorrência escolhida.
+- Contas semelhantes mostram seleção; PF/PJ ambíguos exigem complemento.
+- Valor desconhecido e data futura não geram baixa indevida.
+- Preferência de confirmação distingue previsto e realizado antes de gravar.
+- Alteração, cancelamento ou baixa no portal invalidam o resumo anterior.
+- Reenvio de webhook, botão, fila e notificação não duplica movimentos ou IA.
+- Falhas injetadas na identidade da baixa revertem gasto, recebimento e pagamento
+  de fatura junto com o saldo correspondente.
+- Fatura aceita pagamento parcial, rejeita excesso e preserva as compras originais.
+- Conta paga no crédito usa uma parcela sem debitar o banco imediatamente.
+- Reembolsos preservam compra, pessoa e registro do recebimento.
+- Recebimentos de investimento permanecem fora da disponibilidade de uso diário.
+- Mensagens naturais compatíveis apresentam revisão; repetições não viram duplicatas.
+- /pendentes e ajuda não consomem uma chamada de reconhecimento.
+- IDs do modelo, mensagens mistas, usuário alheio e serviço bloqueado são rejeitados.
+- Desvinculação e privacidade removem rascunhos e abrangem as baixas concluídas.
+- Telas de contas, recebimentos e extratos refletem as baixas com um único movimento.
+- Verificação visual em celular e ausência de erros JavaScript nos fluxos completos.
+
+As APIs externas são simuladas somente nos testes, sem envio de mensagens reais,
+chaves reais ou gravações. O pacote distribuído contém o plugin, seus recursos e
+documentação; exclui testes, ferramentas e credenciais. A atualização nativa usa
+Plugin_Upgrader isolado e confere o hash do ZIP canônico.

@@ -56,9 +56,9 @@ final class PDS_Finance_Sharing {
         return false === $wpdb->delete( $wpdb->prefix . 'pds_fin_receipts', array( 'shared_expense_id' => $expense_id, 'user_id' => $uid ) ) ? PDS_Finance::error( 'Não foi possível remover as previsões da compra.', 500 ) : true;
     }
     private static function fail( $message, $status = 500 ) { global $wpdb; $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( $message, $status ); }
-    public static function save_receipt( $r, $old ) {
+    public static function save_receipt( $r, $old, $in_transaction = false ) {
         global $wpdb; $uid = get_current_user_id();
-        if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return PDS_Finance::error( 'Não foi possível iniciar o recebimento.', 500 ); }
+        if ( ! $in_transaction && false === $wpdb->query( 'START TRANSACTION' ) ) { return PDS_Finance::error( 'Não foi possível iniciar o recebimento.', 500 ); }
         $expense = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d FOR UPDATE", $old['shared_expense_id'], $uid ) );
         $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_receipts WHERE id=%d AND user_id=%d FOR UPDATE", $old['id'], $uid ), ARRAY_A );
         if ( ! $expense || ! $row || $wpdb->last_error || (int) $row['shared_expense_id'] !== (int) $expense ) { return self::fail( 'O reembolso mudou. Atualize a página e confira.', 409 ); }
@@ -71,7 +71,7 @@ final class PDS_Finance_Sharing {
         if ( $account < 0 || ( ! $account && 'received' === $status ) ) { return self::fail( 'Escolha a conta em que você recebeu o reembolso.', 400 ); }
         if ( $account ) { $bank = $wpdb->get_row( $wpdb->prepare( "SELECT id,active FROM {$wpdb->prefix}pds_fin_accounts WHERE id=%d AND user_id=%d FOR UPDATE", $account, $uid ), ARRAY_A ); if ( ! $bank || $wpdb->last_error ) { return self::fail( 'Conta não encontrada ou sem acesso.', 404 ); } if ( ! $bank['active'] && (int) $row['account_id'] !== $account ) { return self::fail( 'Escolha uma conta ativa.', 409 ); } }
         $ok = $wpdb->update( $wpdb->prefix . 'pds_fin_receipts', array( 'account_id' => $account, 'amount' => $amount, 'received_on' => $date, 'status' => $status, 'notes' => sanitize_text_field( $notes ), 'updated_at' => current_time( 'mysql', true ) ), array( 'id' => $row['id'], 'user_id' => $uid ) );
-        if ( false === $ok || false === $wpdb->query( 'COMMIT' ) ) { return self::fail( 'Não foi possível confirmar o reembolso.' ); }
+        if ( false === $ok || ( ! $in_transaction && false === $wpdb->query( 'COMMIT' ) ) ) { return self::fail( 'Não foi possível confirmar o reembolso.' ); }
         return array( 'id' => (int) $row['id'] );
     }
     public static function cancel_receipt( $old ) { $r = new WP_REST_Request( 'PUT' ); $r->set_body_params( array( 'status' => 'canceled' ) ); return self::save_receipt( $r, $old ); }

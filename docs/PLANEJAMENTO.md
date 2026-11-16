@@ -141,11 +141,13 @@ pode ser escolhida depois, na baixa. A preferência individual e a exigência gl
 de confirmação continuam valendo. Confirmar o cadastro de uma previsão não efetua
 baixa. `/contasapagar` mostra ajuda; `/contas` lista contas bancárias.
 
-Para baixar uma previsão existente, use o lançamento original no portal. Um gasto
-ou recebimento realizado informado separadamente ao bot é um novo movimento;
-ele não é automaticamente conciliado com uma previsão anterior. Isso evita dar
-baixa na obrigação errada. Mantenha um único movimento usando os botões de baixa
-da previsão original.
+A partir de **1.17.0**, use **/baixar** ou **/pendentes** no Telegram para realizar
+uma previsão existente. Informe a descrição, o mês quando necessário, o valor
+realizado, a data e a conta. O bot mostra as ocorrências quando houver dúvida,
+confere o resumo conforme a preferência e atualiza o lançamento original, sem
+duplicar o movimento. Mensagens comuns que correspondem a uma previsão passam
+por revisão da baixa. O cadastro manual no portal continua disponível.
+Veja [BAIXAS-TELEGRAM.md](BAIXAS-TELEGRAM.md).
 
 ## Dados e preservação
 

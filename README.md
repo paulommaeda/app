@@ -3,7 +3,7 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.16.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.17.0.zip)**
 
 ## Editar e excluir contas a pagar — 1.15.0
 
@@ -32,6 +32,19 @@ R$ 800, mantendo R$ 9.200 reservados. Aportes fazem o caminho inverso, sem criar
 receitas ou gastos. A finalidade também pode ser definida nos tipos personalizados.
 Contas existentes podem mudar de tipo sem perder saldos ou extratos.
 Veja [o guia de investimentos e reservas](docs/INVESTIMENTOS.md).
+
+## Baixas pelo Telegram — 1.17.0
+
+Dê baixa em contas e recebimentos previstos usando o mesmo bot e vínculo do portal:
+**“Dê baixa na luz prevista de novembro: paguei 195 reais ontem no Pix pela C6 PJ”**
+ou **“Recebi o salário previsto de novembro, 2 mil reais hoje na C6 PJ”**.
+
+O bot localiza a previsão e atualiza o lançamento original, com valor/data reais,
+sem duplicar gastos ou recebimentos. Nas recorrências, baixa somente a ocorrência
+escolhida. **/pendentes** permite selecionar a previsão; **/baixar** mostra a ajuda.
+Também aceita reembolsos de pessoas e pagamentos parciais de fatura. Mantém a
+confirmação configurada e pede escolha quando houver várias previsões semelhantes.
+Veja [o guia de baixas pelo Telegram](docs/BAIXAS-TELEGRAM.md).
 
 ## Instalação
 
