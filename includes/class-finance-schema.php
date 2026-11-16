@@ -6,7 +6,10 @@ final class PDS_Finance_Schema {
         global $wpdb; $p = $wpdb->prefix;
         dbDelta( "CREATE TABLE {$p}pds_fin_settlements (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             source_ref varchar(64) NOT NULL,
             target_kind varchar(12) NOT NULL,
             target_id bigint(20) unsigned NOT NULL,
@@ -17,12 +20,15 @@ final class PDS_Finance_Schema {
             account_id bigint(20) unsigned NOT NULL DEFAULT 0,
             created_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            UNIQUE KEY user_source (user_id,source_ref),
-            KEY user_target (user_id,target_kind,target_id)
+            UNIQUE KEY user_source (space_id,source_ref),
+            KEY user_target (space_id,target_kind,target_id)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_subscriptions (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             card_id bigint(20) unsigned NOT NULL,
             category_id bigint(20) unsigned NOT NULL,
             name varchar(120) NOT NULL,
@@ -38,12 +44,15 @@ final class PDS_Finance_Schema {
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            UNIQUE KEY user_card_name (user_id,card_id,name_key),
-            KEY user_status (user_id,status)
+            UNIQUE KEY user_card_name (space_id,card_id,name_key),
+            KEY user_status (space_id,status)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_subscription_charges (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             subscription_id bigint(20) unsigned NOT NULL,
             invoice_id bigint(20) unsigned NOT NULL,
             invoice_month varchar(7) NOT NULL,
@@ -58,31 +67,40 @@ final class PDS_Finance_Schema {
             PRIMARY KEY  (id),
             UNIQUE KEY service_month (subscription_id,invoice_month),
             UNIQUE KEY expense_id (expense_id),
-            KEY invoice_status (user_id,invoice_id,status)
+            KEY invoice_status (space_id,invoice_id,status)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_splits (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             expense_id bigint(20) unsigned NOT NULL,
             person_id bigint(20) unsigned NOT NULL DEFAULT 0,
             weight bigint(20) unsigned NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY expense_person (expense_id,person_id),
-            KEY user_id (user_id)
+            KEY space_id (space_id)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_people (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             name varchar(80) NOT NULL,
             slug varchar(170) NOT NULL,
             active tinyint(1) NOT NULL DEFAULT 1,
             created_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            UNIQUE KEY user_slug (user_id,slug)
+            UNIQUE KEY user_slug (space_id,slug)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_account_types (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             code varchar(16) NOT NULL,
             name varchar(80) NOT NULL,
             slug varchar(170) NOT NULL,
@@ -90,12 +108,15 @@ final class PDS_Finance_Schema {
             is_reserve tinyint(1) NOT NULL DEFAULT 0,
             created_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            UNIQUE KEY user_code (user_id,code),
-            UNIQUE KEY user_slug (user_id,slug)
+            UNIQUE KEY user_code (space_id,code),
+            UNIQUE KEY user_slug (space_id,slug)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_accounts (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             name varchar(80) NOT NULL,
             kind varchar(16) NOT NULL DEFAULT 'checking',
             opening_balance decimal(12,2) NOT NULL DEFAULT 0,
@@ -103,11 +124,14 @@ final class PDS_Finance_Schema {
             active tinyint(1) NOT NULL DEFAULT 1,
             created_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            KEY user_id (user_id)
+            KEY space_id (space_id)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_transfers (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             from_account_id bigint(20) unsigned NOT NULL,
             to_account_id bigint(20) unsigned NOT NULL,
             amount decimal(12,2) NOT NULL,
@@ -119,13 +143,16 @@ final class PDS_Finance_Schema {
             reversed_at datetime DEFAULT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY request_key (request_key),
-            KEY user_date (user_id,transferred_on),
-            KEY from_account (user_id,from_account_id,status,transferred_on),
-            KEY to_account (user_id,to_account_id,status,transferred_on)
+            KEY user_date (space_id,transferred_on),
+            KEY from_account (space_id,from_account_id,status,transferred_on),
+            KEY to_account (space_id,to_account_id,status,transferred_on)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_receipts (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             account_id bigint(20) unsigned NOT NULL,
             description varchar(180) NOT NULL,
             amount decimal(12,2) NOT NULL,
@@ -146,16 +173,19 @@ final class PDS_Finance_Schema {
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            KEY user_date (user_id,received_on),
+            KEY user_date (space_id,received_on),
             KEY account_id (account_id),
             UNIQUE KEY external_ref (external_ref),
             UNIQUE KEY recurring_month (recurring_id,occurrence_month),
             UNIQUE KEY shared_person_part (shared_expense_id,person_id,shared_installment_no),
-            KEY user_person (user_id,person_id,received_on)
+            KEY user_person (space_id,person_id,received_on)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_cards (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             name varchar(80) NOT NULL,
             last_four varchar(4) NOT NULL DEFAULT '',
             credit_limit decimal(12,2) NOT NULL DEFAULT 0,
@@ -165,22 +195,28 @@ final class PDS_Finance_Schema {
             active tinyint(1) NOT NULL DEFAULT 1,
             created_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            KEY user_id (user_id)
+            KEY space_id (space_id)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_invoices (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             card_id bigint(20) unsigned NOT NULL,
             invoice_month varchar(7) NOT NULL,
             closing_on date NOT NULL,
             due_on date NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY card_month (card_id,invoice_month),
-            KEY user_due (user_id,due_on)
+            KEY user_due (space_id,due_on)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_installments (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             expense_id bigint(20) unsigned NOT NULL,
             card_id bigint(20) unsigned NOT NULL,
             invoice_id bigint(20) unsigned NOT NULL,
@@ -193,11 +229,14 @@ final class PDS_Finance_Schema {
             UNIQUE KEY expense_part (expense_id,installment_no),
             UNIQUE KEY bank_ref (bank_ref),
             KEY invoice_id (invoice_id),
-            KEY user_id (user_id)
+            KEY space_id (space_id)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_bill_payments (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             invoice_id bigint(20) unsigned NOT NULL,
             account_id bigint(20) unsigned NOT NULL,
             amount decimal(12,2) NOT NULL,
@@ -205,11 +244,14 @@ final class PDS_Finance_Schema {
             created_at datetime NOT NULL,
             PRIMARY KEY  (id),
             KEY invoice_id (invoice_id),
-            KEY user_account (user_id,account_id,paid_on)
+            KEY user_account (space_id,account_id,paid_on)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_adjustments (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             invoice_id bigint(20) unsigned NOT NULL,
             description varchar(180) NOT NULL,
             amount decimal(12,2) NOT NULL,
@@ -218,11 +260,14 @@ final class PDS_Finance_Schema {
             PRIMARY KEY  (id),
             UNIQUE KEY external_ref (external_ref),
             KEY invoice_id (invoice_id),
-            KEY user_id (user_id)
+            KEY space_id (space_id)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_recurring (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             kind varchar(12) NOT NULL,
             description varchar(180) NOT NULL,
             amount decimal(12,2) DEFAULT NULL,
@@ -239,13 +284,16 @@ final class PDS_Finance_Schema {
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            KEY user_active (user_id,active),
+            KEY user_active (space_id,active),
             KEY next_month (active,next_month),
             UNIQUE KEY external_ref (external_ref)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$p}pds_fin_payables (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             recurring_id bigint(20) unsigned DEFAULT NULL,
             occurrence_month varchar(7) DEFAULT NULL,
             description varchar(180) NOT NULL,
@@ -261,7 +309,7 @@ final class PDS_Finance_Schema {
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            KEY user_due (user_id,due_on),
+            KEY user_due (space_id,due_on),
             UNIQUE KEY recurring_month (recurring_id,occurrence_month),
             UNIQUE KEY expense_id (expense_id),
             UNIQUE KEY external_ref (external_ref)
@@ -269,6 +317,6 @@ final class PDS_Finance_Schema {
         // dbDelta adds indexes but does not remove the former one-person uniqueness rule.
         $old_index = $wpdb->get_var( "SHOW INDEX FROM {$p}pds_fin_receipts WHERE Key_name='shared_part'" );
         if ( $old_index ) { $wpdb->query( "ALTER TABLE {$p}pds_fin_receipts DROP INDEX shared_part" ); }
-        $wpdb->query( "UPDATE {$p}pds_fin_receipts r INNER JOIN {$p}pds_fin_installments s ON s.expense_id=r.shared_expense_id AND s.installment_no=r.shared_installment_no AND s.user_id=r.user_id SET r.shared_invoice_amount=s.amount WHERE r.shared_expense_id IS NOT NULL AND r.shared_invoice_amount IS NULL" );
+        $wpdb->query( "UPDATE {$p}pds_fin_receipts r INNER JOIN {$p}pds_fin_installments s ON s.expense_id=r.shared_expense_id AND s.installment_no=r.shared_installment_no AND s.space_id=r.space_id SET r.shared_invoice_amount=s.amount WHERE r.shared_expense_id IS NOT NULL AND r.shared_invoice_amount IS NULL" );
     }
 }

@@ -2,7 +2,7 @@
 Contributors: paulommaeda
 Requires at least: 6.6
 Requires PHP: 8.0
-Stable tag: 1.17.0
+Stable tag: 1.18.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,7 +39,9 @@ catálogo de serviços, Meu Combustível e Meu Financeiro.
 * Investimentos e reservas fora do dinheiro disponível e do fluxo de uso diário.
 * Resgates e aportes por transferências, disponibilizando somente o valor necessário.
 * Finalidade configurável nos tipos de conta; saldos e extratos preservados.
-* Gastos, contas, recebimentos, cartões, faturas e dashboard privados por usuário.
+* Financeiros pessoais e compartilhados, com isolamento por financeiro e permissões por participante.
+* Convites por e-mail para usuários WordPress, autoria e revogação sem apagar movimentos.
+* Cada participante vincula seu próprio Telegram e escolhe o financeiro pelo mesmo bot.
 * Dashboard mensal soma as parcelas de cada fatura; valor integral fica na consulta da compra.
 * Abastecimentos novos geram gastos automaticamente para quem registrou.
 * Crédito à vista ou em até 120 parcelas, distribuídas por fechamento/vencimento.
@@ -171,6 +173,15 @@ abastecimentos; autoria em veículos de terceiros é anonimizada. As ferramentas
 de privacidade do WordPress permitem exportar e apagar esses dados.
 
 == Changelog ==
+
+= 1.18.0 =
+* Financeiros compartilhados com convites por e-mail e usuários WordPress individuais.
+* Permissões de consulta, lançamentos e administração; autoria dos movimentos e revogação imediata.
+* Compartilhar os dados atuais ou criar grupo vazio, mantendo financeiros pessoais separados.
+* Telegram próprio por participante com /financeiros e /financeiro ID; contexto preservado na fila.
+* Migração automática dos dados, preservando faturas, parcelas, recorrências, assinaturas e saldos.
+* Validação de acesso em mensagens, confirmações e reenvios; exportação e privacidade por proprietário/autoria.
+
 
 = 1.17.0 =
 * Baixa de contas a pagar e recebimentos previstos por texto ou áudio no Telegram.

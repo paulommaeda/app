@@ -9,8 +9,8 @@
   const month = s => /^\d{4}-\d{2}$/.test(s || '') ? s.slice(5)+'/'+s.slice(0,4) : '—';
   const localized = n => Number(n || 0).toFixed(2).replace('.', ',');
   function url(path) {const u=new URL(PDS.api,location.href),[route,query]=path.split('?');if(u.searchParams.has('rest_route'))u.searchParams.set('rest_route',u.searchParams.get('rest_route').replace(/\/?$/,'/')+route);else u.pathname=u.pathname.replace(/\/?$/,'/')+route;if(query)new URLSearchParams(query).forEach((v,k)=>u.searchParams.set(k,v));return u;}
-  async function api(path, method='GET', data=null) {
-    const options={method,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','X-WP-Nonce':PDS.nonce}};
+  async function api(path, method='GET', data=null, scope=null) {
+    const options={method,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','X-WP-Nonce':PDS.nonce,...window.PDSFinanceSpace.headers(scope)}};
     if(data instanceof FormData) options.body=data; else if(data!==null){options.headers['Content-Type']='application/json';options.body=JSON.stringify(data);}
     let response,result;try{response=await fetch(url(path),options);result=await response.json();}catch(_){throw new Error('Não foi possível conectar. Confira sua conexão e tente novamente.');}
     if(!response.ok)throw new Error(result.message||'Não foi possível concluir a operação.');return result;
@@ -61,7 +61,7 @@
     async function preview() {
       const block=container.querySelector('fieldset'),target=block?.querySelector('[data-fin-plan]');if(!target||!form.elements.card_id.value||!form.elements[amountField].value)return;
       const generation=version;
-      try {const result=await api('finance/plan','POST',{expense_id:entry?.id||null,card_id:form.elements.card_id.value,amount:form.elements[amountField].value,spent_on:form.elements[dateField].value,installments:form.elements.installments.value||'1',first_invoice:form.elements.first_invoice.value});if(generation!==version)return;
+      try {const result=await api('finance/plan','POST',{expense_id:entry?.id||null,card_id:form.elements.card_id.value,amount:form.elements[amountField].value,spent_on:form.elements[dateField].value,installments:form.elements.installments.value||'1',first_invoice:form.elements.first_invoice.value},Number(form.dataset.financeSpace)||null);if(generation!==version)return;
         const items=result.installments;target.innerHTML='<strong>Previsão das faturas</strong>'+items.slice(0,12).map(i=>'<div><span>'+i.installment_no+'/'+i.installment_total+' · '+esc(month(i.invoice_month))+'<small>Vence '+esc(date(i.due_on))+'</small></span><b>'+esc(money(i.amount))+'</b></div>').join('')+(items.length>12?note('Mais '+(items.length-12)+' parcelas nos meses seguintes.'):'')+note(entry?.installment_start>1?'Compra importada: o valor editado representa apenas as parcelas restantes.':'Total da compra: '+money(result.total)+'. A compra é registrada uma vez; cada parcela entra na sua fatura.');
       } catch(e) {if(generation===version)target.textContent=e.message;}
     }
@@ -73,9 +73,12 @@
   if(root&&E){expensePayment=paymentEditor($('pds-expense-payment-fields'),$('pds-expense-form'),'amount','spent_on');document.addEventListener('pds:expense-edit',e=>expensePayment.render(e.detail));}
   window.PDSPaymentFinanceBridge={api,state,paymentEditors,choices,input,select,pair,button,option,badge,note,empty,busy,toast,esc,money,date,month,localized};
   const fuelForm=$('pds-record-form');
-  if(fuelForm){const fuelPayment=paymentEditor($('pds-fuel-payment-fields'),fuelForm,'paid','filled_on');let latest=null,ready=false,allowed=false;
-    document.addEventListener('pds:fuel-edit',event=>{latest=event.detail;if(ready)fuelPayment.render(latest?.finance||null,allowed&&(!latest||!!latest.finance||latest.created_by===Number(PDS.userId)));});
-    api('expenses/categories').then(data=>{state.accounts=data.accounts||[];state.cards=data.cards||[];state.people=data.people||[];state.sharedCardEnabled=!!data.shared_card_enabled;allowed=true;}).catch(()=>{}).finally(()=>{ready=true;fuelPayment.render(latest?.finance||null,allowed&&(!latest||!!latest.finance||latest.created_by===Number(PDS.userId)));});
+  if(fuelForm){const fuelPayment=paymentEditor($('pds-fuel-payment-fields'),fuelForm,'paid','filled_on');let generation=0;
+    const loadFuel=async latest=>{const version=++generation,scope=Number(latest?.finance?.space_id||window.PDSFinanceSpace.id);fuelForm.dataset.financeSpace=String(scope);const submit=fuelForm.querySelector('[type=submit]');submit.disabled=true;$('pds-fuel-payment-fields').textContent='Carregando as contas deste financeiro...';let allowed=false;
+      try{const data=await api('expenses/categories','GET',null,scope);if(version!==generation)return;state.accounts=data.accounts||[];state.cards=data.cards||[];state.people=data.people||[];state.sharedCardEnabled=!!data.shared_card_enabled;const space=(PDS.financeSpaces?.spaces||[]).find(s=>s.id===scope);allowed=!!space&&(latest?space.can_manage:space.can_write)&&(!latest||!!latest.finance||latest.created_by===Number(PDS.userId));}
+      catch(_){}finally{if(version===generation){fuelPayment.render(latest?.finance||null,allowed);const caption=document.createElement('p');caption.className='pds-finance-note';caption.textContent='Financeiro: '+((PDS.financeSpaces?.spaces||[]).find(s=>s.id===scope)?.name||'Meu financeiro pessoal');$('pds-fuel-payment-fields').prepend(caption);submit.disabled=false;}}
+    };
+    document.addEventListener('pds:fuel-edit',event=>{loadFuel(event.detail);});loadFuel(null);
   }
   if(!root||!E)return;
   function sync(data) {state.accounts=data.accounts||[];state.people=data.people||[];state.sharedCardEnabled=!!(data.sharedCardEnabled??data.shared_card_enabled);const personFilter=$('pds-receipts-period').elements.person_id;const chosenPerson=personFilter.value;personFilter.innerHTML=choices(state.people,chosenPerson,'Todas as pessoas',true);personFilter.closest('label').hidden=!state.people.length;state.accountTypes=data.accountTypes||data.account_types||[];state.cards=data.cards||[];state.categories=data.categories||[];const chosen=$('pds-invoice-filter').elements.card_id.value;$('pds-invoice-filter').elements.card_id.innerHTML=choices(state.cards,chosen,'Todos os cartões',true);const selected=$('pds-finance-import').elements.card_id.value;$('pds-finance-import').elements.card_id.innerHTML=choices(state.cards,selected,'Escolha o cartão');if(state.tab==='accounts')accountCards();if(state.tab==='cards')cardCards();}

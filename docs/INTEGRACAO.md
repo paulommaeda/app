@@ -1,5 +1,36 @@
 # Próximos serviços do portal
 
+## Escopo financeiro atual — 1.18.0
+
+Meu Financeiro está integrado sob o serviço `gastos`. A identidade autenticada continua
+sendo `get_current_user_id()`. O namespace dos dados é `PDS_Finance_Spaces::id()`;
+os dois IDs são independentes e nunca devem ser intercambiados.
+
+* Tabelas financeiras e despesas usam `space_id` para consultas, junções e índices.
+  `user_id` permanece como metadado do proprietário WordPress para migração/privacidade;
+  `created_by` e `updated_by` são os usuários WordPress reais.
+* Rotas recebem `X-PDS-Finance-Space`. Sem o cabeçalho, usam o financeiro pessoal.
+  Um cabeçalho explícito inválido, sem participação ou revogado é rejeitado; não há
+  fallback silencioso para outro financeiro. Envie também o nonce `X-WP-Nonce`.
+* Métodos internos com parâmetro `$uid` nos módulos financeiros recebem agora o ID
+  do financeiro. Para rotinas legítimas de geração, `within($space, $callback)` mantém
+  o contexto; não altera nem autentica usuários e não é exposto ao cliente.
+* `PDS_Expenses::permission($request)` verifica a participação e a operação. As rotas
+  de espaços verificam separadamente o acesso ao grupo do parâmetro. Integrações
+  devem verificar `can('read'|'write'|'manage', $space)` para a ação correspondente.
+* Os hooks `pds_expense_created`, `pds_expense_updated`, `pds_expense_deleted` recebem
+  `$entry, $actor_wordpress_user_id, $space_id`. Os dois primeiros argumentos mantêm
+  o significado de usuário real; o terceiro identifica o financeiro.
+* Links, conversas e fila Telegram continuam identificados pelo usuário real;
+  `finance_space_id` guarda o contexto financeiro. A fila congela o destino no ingresso,
+  e cada execução/confirmacão/reenvio revalida acesso. Tokens de convite ficam em hash.
+* A migração cria financeiros pessoais, preenche os novos campos e substitui índices
+  de isolamento antes do `dbDelta`. IDs de movimentos e relações são preservados.
+
+O contrato acima rege o financeiro atual. Os exemplos genéricos e notas versionadas
+abaixo documentam também a evolução do núcleo e outros serviços independentes.
+Veja [FINANCEIRO-COMPARTILHADO.md](FINANCEIRO-COMPARTILHADO.md).
+
 O plugin `portal-de-servicos` contém o núcleo do portal e o primeiro serviço,
 `combustivel`. O futuro financeiro deve ser um plugin independente que registra
 seu serviço neste núcleo. Nenhuma segunda tabela de usuários deve ser criada.

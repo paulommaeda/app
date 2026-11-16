@@ -60,6 +60,7 @@ final class PDS_Core {
             'api' => esc_url_raw( rest_url( 'pds/v1/' ) ),
             'nonce' => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
             'csrf' => PDS_Auth::guest_token(), 'portalUrl' => pds_portal_url(), 'userId' => get_current_user_id(),
+            'financeSpaces' => is_user_logged_in() ? PDS_Finance_Spaces::listing() : null,
             'today' => current_time( 'Y-m-d' ), 'registration' => ! empty( $settings['registration'] ),
             'privacyUrl' => get_privacy_policy_url(),
             'reset' => array(

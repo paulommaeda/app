@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Portal de Serviços
  * Description: Portal com contas WordPress, controle financeiro e de abastecimentos, com gastos e recebimentos por voz no Telegram.
- * Version: 1.17.0
+ * Version: 1.18.0
  * Plugin URI: https://github.com/paulommaeda/app
  * Update URI: https://github.com/paulommaeda/app
  * Requires at least: 6.6
@@ -15,11 +15,12 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PDS_VERSION', '1.17.0' );
+define( 'PDS_VERSION', '1.18.0' );
 define( 'PDS_FILE', __FILE__ );
 define( 'PDS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PDS_URL', plugin_dir_url( __FILE__ ) );
 
+require_once PDS_DIR . 'includes/class-finance-spaces.php';
 require_once PDS_DIR . 'includes/class-finance-schema.php';
 require_once PDS_DIR . 'includes/class-install.php';
 require_once PDS_DIR . 'includes/class-finance.php';
@@ -52,6 +53,7 @@ require_once PDS_DIR . 'includes/class-telegram-expenses.php';
 require_once PDS_DIR . 'includes/class-telegram-receipts.php';
 require_once PDS_DIR . 'includes/class-telegram-payables.php';
 require_once PDS_DIR . 'includes/class-telegram-settlements.php';
+require_once PDS_DIR . 'includes/class-telegram-spaces.php';
 require_once PDS_DIR . 'includes/class-telegram-router.php';
 require_once PDS_DIR . 'includes/class-telegram-admin.php';
 
@@ -62,6 +64,7 @@ add_action( 'plugins_loaded', static function () {
     if ( get_option( 'pds_db_version' ) !== PDS_VERSION ) {
         PDS_Install::schema();
     }
+    PDS_Finance_Spaces::boot();
     PDS_Core::boot();
     PDS_Auth::boot();
     PDS_Fuel::boot();

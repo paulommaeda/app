@@ -5,7 +5,7 @@ final class PDS_Telegram_Fuel {
     public static function draft( $uid, $telegram ) {
         global $wpdb;
         $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_tg_drafts WHERE user_id=%d AND telegram_id=%s AND expires_at>%d", $uid, $telegram, time() ), ARRAY_A );
-        if ( ! $row ) { return null; }
+        if ( ! $row || ( (int) $row['finance_space_id'] ?: PDS_Finance_Spaces::personal( $uid ) ) !== PDS_Finance_Spaces::id() ) { return null; }
         $row['data'] = json_decode( $row['data'], true );
         return is_array( $row['data'] ) ? $row : null;
     }
@@ -13,7 +13,7 @@ final class PDS_Telegram_Fuel {
     private static function write_draft( $draft ) {
         global $wpdb;
         $result = $wpdb->replace( $wpdb->prefix . 'pds_tg_drafts', array(
-            'user_id' => $draft['user_id'], 'telegram_id' => $draft['telegram_id'], 'source_ref' => $draft['source_ref'],
+            'user_id' => $draft['user_id'], 'finance_space_id' => PDS_Finance_Spaces::id(), 'telegram_id' => $draft['telegram_id'], 'source_ref' => $draft['source_ref'],
             'token' => $draft['token'], 'data' => wp_json_encode( $draft['data'] ), 'expires_at' => time() + 2 * HOUR_IN_SECONDS,
         ) );
         return false !== $result;
@@ -85,7 +85,7 @@ final class PDS_Telegram_Fuel {
         if ( ! $draft ) {
             $fields = array_fill_keys( array( 'vehicle_hint', 'odometer', 'fuel_type', 'price', 'liters', 'paid', 'full_tank', 'no_discount', 'notes' ), null );
             $fields['filled_on'] = $reference_date; $fields['vehicle_id'] = 0; $fields['vehicle_uncertain'] = false;
-            $draft = array( 'user_id' => $uid, 'telegram_id' => $telegram, 'source_ref' => $job['event_key'], 'token' => '', 'data' => $fields );
+            $draft = array( 'user_id' => $uid, 'finance_space_id' => PDS_Finance_Spaces::id(), 'telegram_id' => $telegram, 'source_ref' => $job['event_key'], 'token' => '', 'data' => $fields );
         }
         foreach ( array( 'vehicle_hint', 'filled_on', 'odometer', 'fuel_type', 'price', 'liters', 'paid', 'full_tank', 'no_discount', 'notes' ) as $key ) {
             if ( null !== $extracted[ $key ] ) {

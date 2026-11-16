@@ -1,5 +1,9 @@
 # Meu Financeiro
 
+Desde **1.18.0**, o portal também oferece financeiros compartilhados com usuários
+WordPress e Telegram individuais. As permissões e o financeiro selecionado se aplicam
+às operações deste guia. Consulte [FINANCEIRO-COMPARTILHADO.md](FINANCEIRO-COMPARTILHADO.md).
+
 A versão 1.5.0 amplia Meus Gastos no próprio plugin, mantendo usuários WordPress,
 senhas, vínculos Telegram, categorias, gastos, veículos e configurações da IA.
 O serviço continua com identificador `gastos` e shortcode `[portal_gastos]`.

@@ -1,6 +1,15 @@
 /* Portal de Serviços. All private data stays on the server; no third-party scripts. */
 (() => {
   'use strict';
+  // A tab holds one financial destination. Another tab changing localStorage cannot move an open form.
+  const financeList=PDS.financeSpaces?.spaces||[], personalFinance=PDS.financeSpaces?.personal_id||0;
+  let storedFinance=0;try{storedFinance=Number(localStorage.getItem('pds-finance-space-'+PDS.userId));}catch(_){}
+  const financeChoice=financeList.find(s=>s.id===storedFinance)||financeList.find(s=>s.id===personalFinance);
+  window.PDSFinanceSpace={id:financeChoice?.id||personalFinance,space:financeChoice||null,
+    headers:(id=null)=>({'X-PDS-Finance-Space':String(id||window.PDSFinanceSpace.id||'')}),
+    choose:id=>{try{localStorage.setItem('pds-finance-space-'+PDS.userId,String(id));}catch(_){}location.reload();}};
+  const financeRoot=document.getElementById('pds-expenses');if(financeRoot)financeRoot.dataset.financeRole=financeChoice?.role||'viewer';
+
   const root = document.getElementById('pds-app');
   if (!root || typeof PDS === 'undefined') return;
   const $ = (s, base = root) => base.querySelector(s);
@@ -25,7 +34,7 @@
     finally { if (button) button.disabled = false; }
   }
   async function api(path, method = 'GET', body = null) {
-    const headers = {'Accept':'application/json'};
+    const headers = {'Accept':'application/json',...window.PDSFinanceSpace.headers(path.startsWith('fuel/')&&['POST','PUT'].includes(method)?document.getElementById('pds-record-form')?.dataset.financeSpace:null)};
     if (/^auth\/(login|register|forgot|reset)$/.test(path)) headers['X-PDS-CSRF'] = PDS.csrf;
     else if (PDS.nonce) headers['X-WP-Nonce'] = PDS.nonce;
     const options = {method, headers, credentials:'same-origin', cache:'no-store'};

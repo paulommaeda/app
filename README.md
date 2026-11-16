@@ -3,7 +3,18 @@
 Plugin WordPress de Paulo Maeda para um portal de serviços com conta única.
 Reúne Meu Combustível e Meu Financeiro: veículos, abastecimentos, gastos, contas, recebimentos, cartões e faturas.
 
-**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.17.0.zip)**
+**[Baixar o plugin instalável](https://raw.githubusercontent.com/paulommaeda/app/main/releases/portal-de-servicos-1.18.0.zip)**
+
+## Financeiro compartilhado — 1.18.0
+
+Em **Meu Financeiro → Criar compartilhado**, crie um grupo vazio ou compartilhe o
+financeiro atual, preservando os dados e recebendo um novo financeiro pessoal vazio.
+Em **Compartilhamento e atividade**, convide pessoas por e-mail com acesso de consulta,
+lançamentos ou administração. Cada pessoa usa seu próprio usuário WordPress e Telegram.
+
+No bot, **/financeiros** lista os destinos e **/financeiro ID** seleciona onde registrar.
+A autoria fica no histórico; remover um participante preserva os lançamentos e retira
+seu acesso. Veja o [guia do financeiro compartilhado](docs/FINANCEIRO-COMPARTILHADO.md).
 
 ## Editar e excluir contas a pagar — 1.15.0
 

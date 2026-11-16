@@ -214,7 +214,7 @@ final class PDS_Fuel {
         $page = max( 1, absint( $request['page'] ?? 1 ) ); $per_page = min( 100, max( 1, absint( $request['per_page'] ?? 12 ) ) );
         $total = count( $rows );
         $rows = array_slice( array_reverse( $rows ), ( $page - 1 ) * $per_page, $per_page );
-        foreach ( $rows as &$row ) { $row['can_modify'] = $vehicle['is_owner'] || $row['created_by'] === get_current_user_id(); $private = PDS_Finance_Fuel::details( $row['id'] ); if ( $private ) { $row['finance'] = $private; } }
+        foreach ( $rows as &$row ) { $row['can_modify'] = $vehicle['is_owner'] || $row['created_by'] === get_current_user_id(); $private = PDS_Finance_Fuel::details( $row['id'] ); if ( $private ) { $row['finance'] = $private; $financial_space = PDS_Finance_Spaces::row( $private['space_id'] ); if ( $financial_space && 'shared' === $financial_space['kind'] && ! PDS_Finance_Spaces::can( 'manage', $private['space_id'] ) ) { $row['can_modify'] = false; } } }
         return array( 'records' => $rows, 'total' => $total, 'pages' => (int) ceil( $total / $per_page ), 'page' => $page );
     }
 

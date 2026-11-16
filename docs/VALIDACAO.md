@@ -444,3 +444,18 @@ As APIs externas são simuladas somente nos testes, sem envio de mensagens reais
 chaves reais ou gravações. O pacote distribuído contém o plugin, seus recursos e
 documentação; exclui testes, ferramentas e credenciais. A atualização nativa usa
 Plugin_Upgrader isolado e confere o hash do ZIP canônico.
+
+
+## Financeiros compartilhados — 1.18.0
+
+* Migração de esquema legado com índices únicos por usuário para financeiros pessoais,
+  preservando IDs, autoria, categorias arquivadas e marcadores de inicialização; reexecução idempotente.
+* Compartilhar financeiro existente ou criar grupo vazio sem copiar dados de convidados.
+* Convites em hash, e-mail correto, aceitação única, expiração/cancelamento e permissões de participantes.
+* Isolamento entre grupos e pessoais, rejeição de cabeçalhos inválidos e acesso de terceiros.
+* Consulta, criação de movimentos, baixas e limites de edição/gestão aplicados no servidor.
+* Autoria real na criação/edição, integração de combustível e geração sem impersonar usuários.
+* Remoção com acesso revogado em aba aberta, rascunho, reconhecimento da IA e entrega adiada.
+* Conversas e tokens separados por pessoa, destino congelado na fila e comandos sem IA.
+* Navegação no celular e computador, convite para usuário novo/existente e contexto estável por aba.
+* Privacidade preserva o histórico compartilhado e anonimiza a contribuição de participante apagado.

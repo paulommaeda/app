@@ -1,5 +1,9 @@
 # Telegram: abastecimentos, gastos e recebimentos por áudio e texto
 
+Desde **1.18.0**, o portal também oferece financeiros compartilhados com usuários
+WordPress e Telegram individuais. As permissões e o financeiro selecionado se aplicam
+às operações deste guia. Consulte [FINANCEIRO-COMPARTILHADO.md](FINANCEIRO-COMPARTILHADO.md).
+
 Disponível a partir da versão 1.2.0, com Gemini na versão 1.3.0 gastos pessoais na 1.4.0 e recebimentos na 1.6.0. A integração fica
 desativada até o responsável
 pelo portal configurar as credenciais e ativar a conexão. Cada pessoa vincula seu

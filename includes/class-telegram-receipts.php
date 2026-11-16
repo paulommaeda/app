@@ -6,7 +6,7 @@ final class PDS_Telegram_Receipts {
     public static function draft( $uid, $telegram ) {
         global $wpdb;
         $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_tg_receipt_drafts WHERE user_id=%d AND telegram_id=%s AND expires_at>%d", $uid, $telegram, time() ), ARRAY_A );
-        if ( ! $row ) { return null; }
+        if ( ! $row || ( (int) $row['finance_space_id'] ?: PDS_Finance_Spaces::personal( $uid ) ) !== PDS_Finance_Spaces::id() ) { return null; }
         $row['data'] = json_decode( $row['data'], true );
         return is_array( $row['data'] ) ? $row : null;
     }
@@ -14,7 +14,7 @@ final class PDS_Telegram_Receipts {
     private static function write( $draft ) {
         global $wpdb;
         return false !== $wpdb->replace( $wpdb->prefix . 'pds_tg_receipt_drafts', array(
-            'user_id' => get_current_user_id(), 'telegram_id' => $draft['telegram_id'],
+            'user_id' => get_current_user_id(), 'finance_space_id' => PDS_Finance_Spaces::id(), 'telegram_id' => $draft['telegram_id'],
             'source_ref' => $draft['source_ref'], 'token' => $draft['token'],
             'data' => wp_json_encode( $draft['data'] ), 'expires_at' => time() + 2 * HOUR_IN_SECONDS,
         ) );
@@ -70,7 +70,7 @@ final class PDS_Telegram_Receipts {
         $uid = get_current_user_id();
         wp_cache_delete( $uid, 'user_meta' ); wp_cache_delete( 'pds_telegram_settings', 'options' );
         $link = PDS_Telegram::link( $uid ); $config = PDS_Telegram_Client::settings();
-        if ( ! $link || $link['telegram_id'] !== $job['telegram_id'] || ! $config['enabled'] || $link['consent_provider'] !== $config['ai_provider'] || ! pds_user_can_access_service( 'gastos' ) ) {
+        if ( ! $link || $link['telegram_id'] !== $job['telegram_id'] || ! $config['enabled'] || $link['consent_provider'] !== $config['ai_provider'] || ! pds_user_can_access_service( 'gastos' ) || ! PDS_Telegram_Spaces::live( $job ) ) {
             return PDS_Telegram::reply( 'O vínculo ou o acesso a Meu Financeiro mudou. Confira sua conta no portal antes de reenviar.' );
         }
         $data = $draft['data']; $missing = array();
@@ -113,7 +113,7 @@ final class PDS_Telegram_Receipts {
     }
 
     public static function saved_reply( $id ) {
-        if ( ! pds_user_can_access_service( 'gastos' ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira seu acesso a Meu Financeiro no portal.' ); }
+        if ( ! pds_user_can_access_service( 'gastos' ) || ! PDS_Finance_Spaces::can() ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira seu acesso a Meu Financeiro no portal.' ); }
         $row = PDS_Finance::find( 'receipts', $id );
         if ( is_wp_error( $row ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira Recebimentos no portal.' ); }
         $account = PDS_Finance::find( 'accounts', $row['account_id'] );

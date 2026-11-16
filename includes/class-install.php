@@ -37,6 +37,7 @@ final class PDS_Install {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         $collate = $wpdb->get_charset_collate();
         $prefix = $wpdb->prefix;
+        $spaces = PDS_Finance_Spaces::schema( $collate ); if ( is_wp_error( $spaces ) ) { return $spaces; }
         dbDelta( "CREATE TABLE {$prefix}pds_vehicles (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             owner_user_id bigint(20) unsigned NOT NULL,
@@ -87,18 +88,24 @@ final class PDS_Install {
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$prefix}pds_expense_categories (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             name varchar(60) NOT NULL,
             slug varchar(170) NOT NULL,
             color varchar(7) NOT NULL DEFAULT '#84928C',
             active tinyint(1) NOT NULL DEFAULT 1,
             created_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            UNIQUE KEY user_slug (user_id,slug)
+            UNIQUE KEY user_slug (space_id,slug)
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$prefix}pds_expenses (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
+            space_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
             category_id bigint(20) unsigned NOT NULL,
             spent_on date NOT NULL,
             description varchar(180) NOT NULL,
@@ -122,8 +129,8 @@ final class PDS_Install {
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            KEY user_date (user_id,spent_on),
-            KEY user_category (user_id,category_id,spent_on),
+            KEY user_date (space_id,spent_on),
+            KEY user_category (space_id,category_id,spent_on),
             UNIQUE KEY external_ref (external_ref),
             UNIQUE KEY fuel_record_id (fuel_record_id),
             UNIQUE KEY payable_id (payable_id)
@@ -131,6 +138,7 @@ final class PDS_Install {
         PDS_Finance_Schema::create( $collate );
         dbDelta( "CREATE TABLE {$prefix}pds_tg_expense_drafts (
             user_id bigint(20) unsigned NOT NULL,
+            finance_space_id bigint(20) unsigned NOT NULL DEFAULT 0,
             telegram_id varchar(24) NOT NULL,
             source_ref varchar(64) NOT NULL,
             token varchar(32) NOT NULL,
@@ -141,6 +149,7 @@ final class PDS_Install {
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$prefix}pds_tg_receipt_drafts (
             user_id bigint(20) unsigned NOT NULL,
+            finance_space_id bigint(20) unsigned NOT NULL DEFAULT 0,
             telegram_id varchar(24) NOT NULL,
             source_ref varchar(64) NOT NULL,
             token varchar(32) NOT NULL,
@@ -169,6 +178,7 @@ final class PDS_Install {
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$prefix}pds_tg_links (
             user_id bigint(20) unsigned NOT NULL,
+            finance_space_id bigint(20) unsigned NOT NULL DEFAULT 0,
             telegram_id varchar(24) DEFAULT NULL,
             chat_id varchar(24) DEFAULT NULL,
             code_hash varchar(64) DEFAULT NULL,
@@ -187,6 +197,7 @@ final class PDS_Install {
             event_key varchar(64) NOT NULL,
             bot_id varchar(24) NOT NULL,
             user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            finance_space_id bigint(20) unsigned NOT NULL DEFAULT 0,
             telegram_id varchar(24) NOT NULL,
             chat_id varchar(24) NOT NULL,
             payload longtext,
@@ -206,6 +217,7 @@ final class PDS_Install {
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$prefix}pds_tg_drafts (
             user_id bigint(20) unsigned NOT NULL,
+            finance_space_id bigint(20) unsigned NOT NULL DEFAULT 0,
             telegram_id varchar(24) NOT NULL,
             source_ref varchar(64) NOT NULL,
             token varchar(32) NOT NULL,
@@ -216,6 +228,7 @@ final class PDS_Install {
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$prefix}pds_tg_payable_drafts (
             user_id bigint(20) unsigned NOT NULL,
+            finance_space_id bigint(20) unsigned NOT NULL DEFAULT 0,
             telegram_id varchar(24) NOT NULL,
             source_ref varchar(64) NOT NULL,
             token varchar(32) NOT NULL,
@@ -226,6 +239,7 @@ final class PDS_Install {
         ) ENGINE=InnoDB $collate;" );
         dbDelta( "CREATE TABLE {$prefix}pds_tg_settlement_drafts (
             user_id bigint(20) unsigned NOT NULL,
+            finance_space_id bigint(20) unsigned NOT NULL DEFAULT 0,
             telegram_id varchar(30) NOT NULL,
             source_ref varchar(64) NOT NULL,
             token varchar(32) NOT NULL,
@@ -234,12 +248,13 @@ final class PDS_Install {
             PRIMARY KEY  (user_id),
             KEY expires_at (expires_at)
         ) ENGINE=InnoDB $collate;" );
-        foreach ( array( 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts', 'pds_expenses', 'pds_expense_categories', 'pds_tg_expense_drafts', 'pds_tg_receipt_drafts', 'pds_fin_accounts', 'pds_fin_people', 'pds_fin_splits', 'pds_fin_subscriptions', 'pds_fin_subscription_charges', 'pds_fin_account_types', 'pds_fin_transfers', 'pds_fin_receipts', 'pds_fin_cards', 'pds_fin_invoices', 'pds_fin_installments', 'pds_fin_bill_payments', 'pds_fin_adjustments', 'pds_fin_recurring', 'pds_fin_payables', 'pds_tg_payable_drafts', 'pds_tg_settlement_drafts', 'pds_fin_settlements' ) as $table ) {
+        foreach ( array( 'pds_fin_spaces', 'pds_fin_members', 'pds_fin_invites', 'pds_vehicles', 'pds_vehicle_shares', 'pds_fuel_records', 'pds_rate_limits', 'pds_import_map', 'pds_tg_links', 'pds_tg_updates', 'pds_tg_drafts', 'pds_expenses', 'pds_expense_categories', 'pds_tg_expense_drafts', 'pds_tg_receipt_drafts', 'pds_fin_accounts', 'pds_fin_people', 'pds_fin_splits', 'pds_fin_subscriptions', 'pds_fin_subscription_charges', 'pds_fin_account_types', 'pds_fin_transfers', 'pds_fin_receipts', 'pds_fin_cards', 'pds_fin_invoices', 'pds_fin_installments', 'pds_fin_bill_payments', 'pds_fin_adjustments', 'pds_fin_recurring', 'pds_fin_payables', 'pds_tg_payable_drafts', 'pds_tg_settlement_drafts', 'pds_fin_settlements' ) as $table ) {
             $name = $prefix . $table;
             if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $name ) ) ) !== $name ) {
                 return new WP_Error( 'pds_schema', 'Não foi possível criar as tabelas do portal. Verifique as permissões do banco de dados e reative o plugin.' );
             }
         }
+        $telegram_spaces = PDS_Finance_Spaces::migrate_telegram(); if ( is_wp_error( $telegram_spaces ) ) { return $telegram_spaces; }
         update_option( 'pds_db_version', PDS_VERSION, false );
         return true;
     }

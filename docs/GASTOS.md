@@ -1,5 +1,9 @@
 # Meu Financeiro — gastos e categorias
 
+Desde **1.18.0**, o portal também oferece financeiros compartilhados com usuários
+WordPress e Telegram individuais. As permissões e o financeiro selecionado se aplicam
+às operações deste guia. Consulte [FINANCEIRO-COMPARTILHADO.md](FINANCEIRO-COMPARTILHADO.md).
+
 Serviço de gastos pessoais disponível no Portal de Serviços a partir da versão
 1.4.0. Usa o mesmo cadastro, sessão WordPress e vínculo Telegram do portal.
 O serviço não exige veículo nem uma nova conta.

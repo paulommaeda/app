@@ -26,15 +26,15 @@ final class PDS_Telegram_Settlements {
     }
     public static function draft( $uid, $telegram ) {
         global $wpdb; $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_tg_settlement_drafts WHERE user_id=%d AND telegram_id=%s AND expires_at>%d", $uid, $telegram, time() ), ARRAY_A );
-        if ( ! $row ) { return null; } $row['data'] = json_decode( $row['data'], true ); return is_array( $row['data'] ) ? $row : null;
+        if ( ! $row || ( (int) $row['finance_space_id'] ?: PDS_Finance_Spaces::personal( $uid ) ) !== PDS_Finance_Spaces::id() ) { return null; } $row['data'] = json_decode( $row['data'], true ); return is_array( $row['data'] ) ? $row : null;
     }
     private static function write( $draft ) {
-        global $wpdb; return false !== $wpdb->replace( $wpdb->prefix . 'pds_tg_settlement_drafts', array( 'user_id' => get_current_user_id(), 'telegram_id' => $draft['telegram_id'], 'source_ref' => $draft['source_ref'], 'token' => $draft['token'], 'data' => wp_json_encode( $draft['data'] ), 'expires_at' => time() + 2 * HOUR_IN_SECONDS ) );
+        global $wpdb; return false !== $wpdb->replace( $wpdb->prefix . 'pds_tg_settlement_drafts', array( 'user_id' => get_current_user_id(), 'finance_space_id' => PDS_Finance_Spaces::id(), 'telegram_id' => $draft['telegram_id'], 'source_ref' => $draft['source_ref'], 'token' => $draft['token'], 'data' => wp_json_encode( $draft['data'] ), 'expires_at' => time() + 2 * HOUR_IN_SECONDS ) );
     }
     private static function clear() { global $wpdb; $wpdb->delete( $wpdb->prefix . 'pds_tg_settlement_drafts', array( 'user_id' => get_current_user_id() ) ); }
     private static function live( $job ) {
         $uid = get_current_user_id(); wp_cache_delete( $uid, 'user_meta' ); wp_cache_delete( 'pds_telegram_settings', 'options' ); $link = PDS_Telegram::link( $uid ); $config = PDS_Telegram_Client::settings();
-        return $link && $link['telegram_id'] === $job['telegram_id'] && $config['enabled'] && $config['bot_id'] === ( $job['bot_id'] ?? '' ) && $link['consent_provider'] === $config['ai_provider'] && pds_user_can_access_service( 'gastos' );
+        return $link && $link['telegram_id'] === $job['telegram_id'] && $config['enabled'] && $config['bot_id'] === ( $job['bot_id'] ?? '' ) && $link['consent_provider'] === $config['ai_provider'] && pds_user_can_access_service( 'gastos' ) && PDS_Telegram_Spaces::live( $job );
     }
     public static function context( $draft ) { return array_intersect_key( $draft['data'], self::fields() ); }
     private static function normalized( $s ) { return trim( preg_replace( '/[^a-z0-9]+/', ' ', strtolower( remove_accents( $s ) ) ) ); }
@@ -55,36 +55,36 @@ final class PDS_Telegram_Settlements {
     }
     /** Only this user's pending records are candidates; IDs always originate in these queries. */
     public static function candidates( $data, $settled = false ) {
-        global $wpdb; $p = $wpdb->prefix; $uid = get_current_user_id(); $kind = $data['kind'] ?? null; $found = array();
+        global $wpdb; $p = $wpdb->prefix; $uid = PDS_Finance_Spaces::id(); $kind = $data['kind'] ?? null; $found = array();
         if ( ! empty( $data['expected_on'] ) && ! PDS_Expenses::valid_date( $data['expected_on'] ) || ! empty( $data['reference_month'] ) && ! PDS_Finance::month( $data['reference_month'] ) ) { return array(); }
         if ( ! $kind || 'payable' === $kind ) {
             $where = self::search_where( $data, 'b.description', 'b.due_on' ); $status = $settled ? 'paid' : 'pending';
-            $rows = $wpdb->get_results( $wpdb->prepare( "SELECT b.id FROM {$p}pds_fin_payables b WHERE b.user_id=%d AND b.status=%s $where ORDER BY b.due_on,b.id LIMIT 9", $uid, $status ), ARRAY_A );
+            $rows = $wpdb->get_results( $wpdb->prepare( "SELECT b.id FROM {$p}pds_fin_payables b WHERE b.space_id=%d AND b.status=%s $where ORDER BY b.due_on,b.id LIMIT 9", $uid, $status ), ARRAY_A );
             foreach ( $rows as $r ) { $row = self::target( 'payable', $r['id'] ); if ( ! is_wp_error( $row ) ) { $found[] = $row; } }
         }
         if ( ! $kind || 'receipt' === $kind ) {
             $where = self::search_where( $data, 'r.description', 'r.received_on', 'pe.name' ); $status = $settled ? 'received' : 'pending';
-            $rows = $wpdb->get_results( $wpdb->prepare( "SELECT r.id FROM {$p}pds_fin_receipts r LEFT JOIN {$p}pds_fin_people pe ON pe.id=r.person_id AND pe.user_id=r.user_id WHERE r.user_id=%d AND r.status=%s $where ORDER BY r.received_on,r.id LIMIT 9", $uid, $status ), ARRAY_A );
+            $rows = $wpdb->get_results( $wpdb->prepare( "SELECT r.id FROM {$p}pds_fin_receipts r LEFT JOIN {$p}pds_fin_people pe ON pe.id=r.person_id AND pe.space_id=r.space_id WHERE r.space_id=%d AND r.status=%s $where ORDER BY r.received_on,r.id LIMIT 9", $uid, $status ), ARRAY_A );
             foreach ( $rows as $r ) { $row = self::target( 'receipt', $r['id'] ); if ( ! is_wp_error( $row ) ) { $found[] = $row; } }
         }
         if ( ! $settled && ( ! $kind || 'invoice' === $kind ) ) {
             $where = self::search_where( $data, "CONCAT('Fatura ',c.name)", 'i.due_on' );
             if ( ! empty( $data['card_hint'] ) ) { $where .= $wpdb->prepare( ' AND (c.name LIKE %s OR c.last_four=%s)', '%' . $wpdb->esc_like( $data['card_hint'] ) . '%', $data['card_hint'] ); }
-            $ids = $wpdb->get_col( $wpdb->prepare( "SELECT i.id FROM {$p}pds_fin_invoices i INNER JOIN {$p}pds_fin_cards c ON c.id=i.card_id AND c.user_id=i.user_id WHERE i.user_id=%d $where ORDER BY ABS(DATEDIFF(i.due_on,%s)),i.due_on,i.id LIMIT 100", $uid, current_time( 'Y-m-d' ) ) );
+            $ids = $wpdb->get_col( $wpdb->prepare( "SELECT i.id FROM {$p}pds_fin_invoices i INNER JOIN {$p}pds_fin_cards c ON c.id=i.card_id AND c.space_id=i.space_id WHERE i.space_id=%d $where ORDER BY ABS(DATEDIFF(i.due_on,%s)),i.due_on,i.id LIMIT 100", $uid, current_time( 'Y-m-d' ) ) );
             foreach ( $ids as $id ) { $row = self::target( 'invoice', $id ); if ( ! is_wp_error( $row ) && $row['pending'] ) { $found[] = $row; if ( count( $found ) >= 9 ) { break; } } }
         }
         usort( $found, static fn( $a, $b ) => strcmp( $a['expected_on'], $b['expected_on'] ) ?: strcmp( $a['description'], $b['description'] ) ); return array_slice( $found, 0, 9 );
     }
     public static function target( $kind, $id, $lock = false ) {
-        global $wpdb; $uid = get_current_user_id(); $tables = array( 'payable' => 'payables', 'receipt' => 'receipts', 'invoice' => 'invoices' );
+        global $wpdb; $uid = PDS_Finance_Spaces::id(); $tables = array( 'payable' => 'payables', 'receipt' => 'receipts', 'invoice' => 'invoices' );
         if ( ! isset( $tables[ $kind ] ) ) { return PDS_Finance::error( 'Previsão inválida.' ); }
-        if ( $lock && 'receipt' === $kind ) { $eid = $wpdb->get_var( $wpdb->prepare( "SELECT shared_expense_id FROM {$wpdb->prefix}pds_fin_receipts WHERE id=%d AND user_id=%d", $id, $uid ) ); if ( $eid ) { $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d FOR UPDATE", $eid, $uid ) ); } }
-        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_{$tables[$kind]} WHERE id=%d AND user_id=%d" . ( $lock ? ' FOR UPDATE' : '' ), $id, $uid ), ARRAY_A );
+        if ( $lock && 'receipt' === $kind ) { $eid = $wpdb->get_var( $wpdb->prepare( "SELECT shared_expense_id FROM {$wpdb->prefix}pds_fin_receipts WHERE id=%d AND space_id=%d", $id, $uid ) ); if ( $eid ) { $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND space_id=%d FOR UPDATE", $eid, $uid ) ); } }
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_{$tables[$kind]} WHERE id=%d AND space_id=%d" . ( $lock ? ' FOR UPDATE' : '' ), $id, $uid ), ARRAY_A );
         if ( ! $row || $wpdb->last_error || ( 'payable' === $kind && 'deleted' === $row['status'] ) ) { return PDS_Finance::error( 'Previsão não encontrada ou sem acesso.', 404 ); }
         if ( 'invoice' === $kind ) { $card = PDS_Finance::find( 'cards', $row['card_id'] ); if ( is_wp_error( $card ) ) { return $card; } $totals = PDS_Finance::invoice_totals( $row['id'] ); $row['_totals'] = $totals; $description = 'Fatura · ' . $card['name']; $amount = $totals['outstanding']; $date = $row['due_on']; $pending = $amount > 0; }
         else { $description = $row['description']; $amount = null === $row['amount'] ? null : (float) $row['amount']; $date = $row[ 'receipt' === $kind ? 'received_on' : 'due_on' ]; $pending = 'pending' === $row['status']; }
-        $person = ''; if ( ! empty( $row['person_id'] ) ) { $person = (string) $wpdb->get_var( $wpdb->prepare( "SELECT name FROM {$wpdb->prefix}pds_fin_people WHERE id=%d AND user_id=%d", $row['person_id'], $uid ) ); if ( $person ) { $description .= ' · ' . $person; } }
-        $snapshot = array_intersect_key( $row, array_flip( array( 'id','user_id','description','amount','status','account_id','category_id','notes','due_on','received_on','recurring_id','occurrence_month','expense_id','shared_expense_id','person_id','shared_planned_amount','shared_planned_on','invoice_month','closing_on','_totals' ) ) );
+        $person = ''; if ( ! empty( $row['person_id'] ) ) { $person = (string) $wpdb->get_var( $wpdb->prepare( "SELECT name FROM {$wpdb->prefix}pds_fin_people WHERE id=%d AND space_id=%d", $row['person_id'], $uid ) ); if ( $person ) { $description .= ' · ' . $person; } }
+        $snapshot = array_intersect_key( $row, array_flip( array( 'id','space_id','description','amount','status','account_id','category_id','notes','due_on','received_on','recurring_id','occurrence_month','expense_id','shared_expense_id','person_id','shared_planned_amount','shared_planned_on','invoice_month','closing_on','_totals' ) ) );
         return array( 'kind' => $kind, 'id' => (int) $id, 'description' => $description, 'expected_amount' => $amount, 'expected_on' => $date, 'account_id' => (int) ( $row['account_id'] ?? 0 ), 'pending' => $pending, 'fingerprint' => hash( 'sha256', wp_json_encode( $snapshot ) ), 'row' => $row );
     }
     /** An ordinary realized message with a matching forecast is reviewed instead of duplicated. */
@@ -117,7 +117,7 @@ final class PDS_Telegram_Settlements {
         }
         if ( in_array( $text, array( '/confirmar', '/salvar' ), true ) ) { return $draft ? self::finish( $job, $draft, true ) : PDS_Telegram::reply( 'Não há uma baixa pendente. Use /pendentes ou diga: dê baixa na luz prevista de novembro, paguei 195 reais hoje no Pix pela conta C6 PJ.' ); }
         if ( ! $draft ) { $data = array_fill_keys( array_keys( self::fields() ), null ); $data['paid_on'] = wp_date( 'Y-m-d', (int) ( $payload['date'] ?? time() ), wp_timezone() ); $data['uncertain_fields'] = array(); $data['uncertain'] = array(); $draft = array( 'telegram_id' => $job['telegram_id'], 'source_ref' => $job['event_key'], 'token' => '', 'data' => $data ); }
-        if ( '/pendentes' === $text ) { if ( ! empty( $draft['data']['selected'] ) ) { return self::finish( $job, $draft, false ); } PDS_Finance_Planning::sync_user( get_current_user_id() ); }
+        if ( '/pendentes' === $text ) { if ( ! empty( $draft['data']['selected'] ) ) { return self::finish( $job, $draft, false ); } PDS_Finance_Planning::sync_user( PDS_Finance_Spaces::id() ); }
         elseif ( ! is_array( $recognized['settlement'] ?? null ) ) { return PDS_Telegram::reply( 'Diga qual previsão foi realizada, o valor real, a data e a conta. Exemplo: recebi o salário previsto de novembro, 2 mil reais hoje na conta C6 PJ.' ); }
         else {
             $entry = $recognized['settlement'];
@@ -171,27 +171,27 @@ final class PDS_Telegram_Settlements {
     }
     private static function rollback( $error ) { global $wpdb; $wpdb->query( 'ROLLBACK' ); return $error; }
     public static function commit( $job, $draft ) {
-        global $wpdb; if ( ! self::live( $job ) ) { return PDS_Finance::error( 'O vínculo ou acesso mudou.', 403 ); } $uid = get_current_user_id(); $d = $draft['data'];
+        global $wpdb; if ( ! self::live( $job ) ) { return PDS_Finance::error( 'O vínculo ou acesso mudou.', 403 ); } $uid = PDS_Finance_Spaces::id(); $d = $draft['data'];
         if ( ! preg_match( '/^[a-f0-9]{64}$/D', $draft['source_ref'] ) || false === $wpdb->query( 'START TRANSACTION' ) ) { return PDS_Finance::error( 'Não foi possível iniciar a baixa.', 500 ); }
-        $existing = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_settlements WHERE user_id=%d AND source_ref=%s FOR UPDATE", $uid, $draft['source_ref'] ) );
+        $existing = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}pds_fin_settlements WHERE space_id=%d AND source_ref=%s FOR UPDATE", $uid, $draft['source_ref'] ) );
         if ( $existing ) { $wpdb->query( 'COMMIT' ); return array( 'id' => (int) $existing, 'already_saved' => true ); }
         $t = self::target( $d['selected']['kind'], $d['selected']['id'], true );
         if ( is_wp_error( $t ) || ! $t['pending'] || ! hash_equals( $d['selected']['fingerprint'], $t['fingerprint'] ) ) { return self::rollback( PDS_Finance::error( 'A previsão mudou ou já teve baixa. Atualize a escolha antes de confirmar.', 409 ) ); }
         $bank_id = 'payable' === $t['kind'] && 'credit' === $d['payment_method'] ? 0 : (int) ( $d['account_id'] ?? 0 );
-        if ( $bank_id ) { $bank = $wpdb->get_row( $wpdb->prepare( "SELECT id,active,opening_on FROM {$wpdb->prefix}pds_fin_accounts WHERE id=%d AND user_id=%d FOR UPDATE", $bank_id, $uid ), ARRAY_A ); if ( ! $bank || ! $bank['active'] || ! PDS_Expenses::valid_date( $d['paid_on'] ) || $d['paid_on'] < $bank['opening_on'] ) { return self::rollback( PDS_Finance::error( 'Confira a conta ativa e a data da baixa.', 409 ) ); } }
+        if ( $bank_id ) { $bank = $wpdb->get_row( $wpdb->prepare( "SELECT id,active,opening_on FROM {$wpdb->prefix}pds_fin_accounts WHERE id=%d AND space_id=%d FOR UPDATE", $bank_id, $uid ), ARRAY_A ); if ( ! $bank || ! $bank['active'] || ! PDS_Expenses::valid_date( $d['paid_on'] ) || $d['paid_on'] < $bank['opening_on'] ) { return self::rollback( PDS_Finance::error( 'Confira a conta ativa e a data da baixa.', 409 ) ); } }
         $r = new WP_REST_Request( 'POST' ); $r->set_url_params( array( 'id' => $t['id'] ) ); $r->set_body_params( array( 'amount' => $d['amount'], 'paid_on' => $d['paid_on'], 'payment_method' => $d['payment_method'], 'account_id' => $bank_id, 'card_id' => $d['card_id'] ?? 0 ) );
         if ( 'payable' === $t['kind'] ) { $saved = PDS_Finance_Planning::pay( $r, true ); }
         elseif ( 'invoice' === $t['kind'] ) { $saved = PDS_Finance::pay_invoice( $r, true ); }
         else { $r->set_method( 'PUT' ); $r->set_body_params( array( 'description' => $t['row']['description'], 'amount' => $d['amount'], 'received_on' => $d['paid_on'], 'account_id' => $bank_id, 'status' => 'received', 'notes' => $t['row']['notes'] ) ); $saved = PDS_Finance::save_receipt( $r, null, true ); }
         if ( is_wp_error( $saved ) ) { return self::rollback( $saved ); } $movement = 'payable' === $t['kind'] ? ( $saved['expense_id'] ?? 0 ) : ( $saved['id'] ?? 0 );
-        if ( ! $movement || false === $wpdb->insert( $wpdb->prefix . 'pds_fin_settlements', array( 'user_id' => $uid, 'source_ref' => $draft['source_ref'], 'target_kind' => $t['kind'], 'target_id' => $t['id'], 'movement_id' => $movement, 'description' => mb_substr( $t['description'], 0, 180 ), 'amount' => PDS_Expenses::amount( $d['amount'] ), 'paid_on' => $d['paid_on'], 'account_id' => $bank_id, 'created_at' => current_time( 'mysql', true ) ) ) ) { return self::rollback( PDS_Finance::error( 'Não foi possível confirmar o registro da baixa. Nenhum movimento foi mantido.', 500 ) ); }
+        if ( ! $movement || false === PDS_Finance_Spaces::insert( $wpdb->prefix . 'pds_fin_settlements', array( 'space_id' => $uid, 'source_ref' => $draft['source_ref'], 'target_kind' => $t['kind'], 'target_id' => $t['id'], 'movement_id' => $movement, 'description' => mb_substr( $t['description'], 0, 180 ), 'amount' => PDS_Expenses::amount( $d['amount'] ), 'paid_on' => $d['paid_on'], 'account_id' => $bank_id, 'created_at' => current_time( 'mysql', true ) ) ) ) { return self::rollback( PDS_Finance::error( 'Não foi possível confirmar o registro da baixa. Nenhum movimento foi mantido.', 500 ) ); }
         $id = (int) $wpdb->insert_id;
-        if ( false === $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}pds_tg_updates SET record_id=%d,record_service='baixas' WHERE user_id=%d AND (id=%d OR event_key=%s)", $id, $uid, $job['id'], $draft['source_ref'] ) ) || false === $wpdb->query( 'COMMIT' ) ) { return self::rollback( PDS_Finance::error( 'Não foi possível concluir a baixa.', 500 ) ); }
-        if ( 'payable' === $t['kind'] ) { do_action( 'pds_expense_created', PDS_Expenses::get_entry( $movement ), $uid ); } return array( 'id' => $id );
+        if ( false === $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}pds_tg_updates SET record_id=%d,record_service='baixas' WHERE user_id=%d AND (id=%d OR event_key=%s)", $id, get_current_user_id(), $job['id'], $draft['source_ref'] ) ) || false === $wpdb->query( 'COMMIT' ) ) { return self::rollback( PDS_Finance::error( 'Não foi possível concluir a baixa.', 500 ) ); }
+        if ( 'payable' === $t['kind'] ) { do_action( 'pds_expense_created', PDS_Expenses::get_entry( $movement ), get_current_user_id(), $uid ); } return array( 'id' => $id );
     }
     public static function saved_reply( $id ) {
-        global $wpdb; if ( ! pds_user_can_access_service( 'gastos' ) ) { return PDS_Telegram::reply( 'Essa mensagem já foi processada. Confira seu acesso a Meu Financeiro.' ); }
-        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_settlements WHERE id=%d AND user_id=%d", $id, get_current_user_id() ), ARRAY_A );
+        global $wpdb; if ( ! pds_user_can_access_service( 'gastos' ) || ! PDS_Finance_Spaces::can() ) { return PDS_Telegram::reply( 'Essa mensagem já foi processada. Confira seu acesso a Meu Financeiro.' ); }
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_settlements WHERE id=%d AND space_id=%d", $id, PDS_Finance_Spaces::id() ), ARRAY_A );
         if ( ! $row ) { return PDS_Telegram::reply( 'Essa baixa já foi processada. Confira os lançamentos no portal.' ); }
         $label = 'receipt' === $row['target_kind'] ? 'Recebimento previsto baixado!' : ( 'invoice' === $row['target_kind'] ? 'Pagamento da fatura registrado!' : 'Conta prevista paga!' );
         return PDS_Telegram::reply( $label . "\n" . $row['description'] . "\nValor realizado: " . self::money( $row['amount'] ) . "\nData real: " . self::date( $row['paid_on'] ) . "\nBaixa aplicada somente ao lançamento escolhido. Confira os saldos e o histórico em Meu Financeiro." );

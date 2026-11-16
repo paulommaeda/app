@@ -1,5 +1,9 @@
 # Contas a pagar e recebimentos previstos
 
+Desde **1.18.0**, o portal também oferece financeiros compartilhados com usuários
+WordPress e Telegram individuais. As permissões e o financeiro selecionado se aplicam
+às operações deste guia. Consulte [FINANCEIRO-COMPARTILHADO.md](FINANCEIRO-COMPARTILHADO.md).
+
 A versão 1.7.0 usa os mesmos usuários, contas, cartões, categorias, vínculos e
 configuração da IA. Nenhum vencimento dá baixa automática. O portal registra
 previsões e movimentos informados por você; não executa operações bancárias.

@@ -4,10 +4,10 @@ defined( 'ABSPATH' ) || exit;
 final class PDS_Telegram_Expenses {
     public static function draft( $uid, $telegram ) {
         global $wpdb; $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_tg_expense_drafts WHERE user_id=%d AND telegram_id=%s AND expires_at>%d", $uid, $telegram, time() ), ARRAY_A );
-        if ( ! $row ) { return null; } $row['data'] = json_decode( $row['data'], true ); return is_array( $row['data'] ) ? $row : null;
+        if ( ! $row || ( (int) $row['finance_space_id'] ?: PDS_Finance_Spaces::personal( $uid ) ) !== PDS_Finance_Spaces::id() ) { return null; } $row['data'] = json_decode( $row['data'], true ); return is_array( $row['data'] ) ? $row : null;
     }
     private static function write( $draft ) {
-        global $wpdb; return false !== $wpdb->replace( $wpdb->prefix . 'pds_tg_expense_drafts', array( 'user_id' => get_current_user_id(), 'telegram_id' => $draft['telegram_id'], 'source_ref' => $draft['source_ref'], 'token' => $draft['token'], 'data' => wp_json_encode( $draft['data'] ), 'expires_at' => time() + 2 * HOUR_IN_SECONDS ) );
+        global $wpdb; return false !== $wpdb->replace( $wpdb->prefix . 'pds_tg_expense_drafts', array( 'user_id' => get_current_user_id(), 'finance_space_id' => PDS_Finance_Spaces::id(), 'telegram_id' => $draft['telegram_id'], 'source_ref' => $draft['source_ref'], 'token' => $draft['token'], 'data' => wp_json_encode( $draft['data'] ), 'expires_at' => time() + 2 * HOUR_IN_SECONDS ) );
     }
     private static function category_id( $hint, $previous_id = 0 ) {
         $categories = PDS_Expenses::category_list();
@@ -53,7 +53,7 @@ final class PDS_Telegram_Expenses {
         if ( ! $confirmed && ( ! empty( $config['confirm_before_save'] ) || ! empty( $link['confirm_before_save'] ) ) ) { return PDS_Telegram::reply( "Confira o gasto:\n" . self::summary( $data, $category['name'] ), array( 'inline_keyboard' => array( array( array( 'text' => 'Salvar gasto', 'callback_data' => 'pds_exp_save:' . $draft['token'] ), array( 'text' => 'Cancelar', 'callback_data' => 'pds_exp_cancel:' . $draft['token'] ) ) ) ) ); }
         wp_cache_delete( get_current_user_id(), 'user_meta' ); wp_cache_delete( 'pds_telegram_settings', 'options' );
         $link = PDS_Telegram::link( get_current_user_id() ); $config = PDS_Telegram_Client::settings();
-        if ( ! $link || $link['telegram_id'] !== $job['telegram_id'] || ! $config['enabled'] || $link['consent_provider'] !== $config['ai_provider'] || ! pds_user_can_access_service( 'gastos' ) ) { return PDS_Telegram::reply( 'O vínculo ou o acesso a Meus Gastos mudou. Confira sua conta no portal antes de reenviar.' ); }
+        if ( ! $link || $link['telegram_id'] !== $job['telegram_id'] || ! $config['enabled'] || $link['consent_provider'] !== $config['ai_provider'] || ! pds_user_can_access_service( 'gastos' ) || ! PDS_Telegram_Spaces::live( $job ) ) { return PDS_Telegram::reply( 'O vínculo ou o acesso a Meus Gastos mudou. Confira sua conta no portal antes de reenviar.' ); }
         $request = new WP_REST_Request( 'POST' ); $request->set_body_params( array_intersect_key( $data, array_fill_keys( array( 'description', 'amount', 'spent_on', 'category_id', 'payment_method', 'merchant', 'notes', 'card_id', 'account_id', 'installments' ), true ) ) );
         $saved = PDS_Expenses::save_entry( $request, 'telegram-expense:' . $draft['source_ref'] );
         if ( is_wp_error( $saved ) ) { return PDS_Telegram::reply( $saved->get_error_message() . ' Envie a correção ou use /cancelar.' ); }
@@ -66,7 +66,7 @@ final class PDS_Telegram_Expenses {
         return 'Descrição: ' . $data['description'] . "\nValor: R$ " . number_format( (float) $data['amount'], 2, ',', '.' ) . "\nCategoria: " . $category . "\nData: " . implode( '/', array_reverse( explode( '-', $data['spent_on'] ) ) ) . "\nPagamento: " . ( PDS_Expenses::PAYMENTS[ $data['payment_method'] ?? '' ] ?? 'Não informado' ) . PDS_Telegram_Finance::summary( $data ) . ( ! empty( $data['merchant'] ) ? "\nEstabelecimento: " . $data['merchant'] : '' );
     }
     public static function saved_reply( $id ) {
-        if ( ! pds_user_can_access_service( 'gastos' ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira seu acesso ao serviço no portal.' ); }
+        if ( ! pds_user_can_access_service( 'gastos' ) || ! PDS_Finance_Spaces::can() ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira seu acesso ao serviço no portal.' ); }
         $entry = PDS_Expenses::get_entry( $id );
         return is_wp_error( $entry ) ? PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira o histórico de gastos no portal.' ) : PDS_Telegram::reply( "Gasto registrado!\n" . self::summary( $entry, $entry['category_name'] ) . "\nConfira o dashboard e corrija qualquer dado em Meus Gastos no portal." );
     }

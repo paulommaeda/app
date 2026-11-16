@@ -13,8 +13,8 @@ final class PDS_Finance_Splits {
         add_action( 'pds_enqueue_assets', static function () { wp_enqueue_script( 'pds-allocation', PDS_URL . 'assets/allocation.js', array( 'pds-finance' ), PDS_VERSION, true ); } );
     }
     private static function positive( $v ) { return ( is_int( $v ) || is_string( $v ) ) && preg_match( '/^[1-9][0-9]{0,17}$/D', (string) $v ) ? (int) $v : 0; }
-    private static function rows( $id, $uid ) { global $wpdb; return $wpdb->get_results( $wpdb->prepare( "SELECT person_id,weight FROM {$wpdb->prefix}pds_fin_splits WHERE expense_id=%d AND user_id=%d ORDER BY person_id", $id, $uid ), ARRAY_A ); }
-    private static function schedule( $id, $uid ) { global $wpdb; return $wpdb->get_results( $wpdb->prepare( "SELECT s.installment_no,s.installment_total,s.amount,i.due_on FROM {$wpdb->prefix}pds_fin_installments s INNER JOIN {$wpdb->prefix}pds_fin_invoices i ON i.id=s.invoice_id AND i.user_id=s.user_id WHERE s.expense_id=%d AND s.user_id=%d ORDER BY s.installment_no", $id, $uid ), ARRAY_A ); }
+    private static function rows( $id, $uid ) { global $wpdb; return $wpdb->get_results( $wpdb->prepare( "SELECT person_id,weight FROM {$wpdb->prefix}pds_fin_splits WHERE expense_id=%d AND space_id=%d ORDER BY person_id", $id, $uid ), ARRAY_A ); }
+    private static function schedule( $id, $uid ) { global $wpdb; return $wpdb->get_results( $wpdb->prepare( "SELECT s.installment_no,s.installment_total,s.amount,i.due_on FROM {$wpdb->prefix}pds_fin_installments s INNER JOIN {$wpdb->prefix}pds_fin_invoices i ON i.id=s.invoice_id AND i.space_id=s.space_id WHERE s.expense_id=%d AND s.space_id=%d ORDER BY s.installment_no", $id, $uid ), ARRAY_A ); }
     private static function cents( $v ) { return PDS_Finance::cents( $v ); }
     private static function gcd( $a, $b ) { while ( $b ) { $t = $a % $b; $a = $b; $b = $t; } return $a; }
     /** floor(a*b/d) and its remainder, without overflowing 64-bit integers. */
@@ -76,7 +76,7 @@ final class PDS_Finance_Splits {
         global $wpdb;
         foreach ( $people as $p ) {
             if ( ! is_array( $p ) || ! ( $id = self::positive( $p['person_id'] ?? 0 ) ) || isset( $weights[ $id ] ) ) { return PDS_Finance::error( 'Escolha pessoas diferentes, sem repetir nomes na divisão.' ); }
-            $person = $wpdb->get_row( $wpdb->prepare( "SELECT id,active FROM {$wpdb->prefix}pds_fin_people WHERE id=%d AND user_id=%d", $id, $uid ), ARRAY_A );
+            $person = $wpdb->get_row( $wpdb->prepare( "SELECT id,active FROM {$wpdb->prefix}pds_fin_people WHERE id=%d AND space_id=%d", $id, $uid ), ARRAY_A );
             if ( ! $person ) { return PDS_Finance::error( 'Pessoa não encontrada ou sem acesso.', 404 ); }
             if ( ! $person['active'] && ! in_array( $id, $old_people, true ) ) { return PDS_Finance::error( 'Escolha pessoas ativas.', 409 ); }
             $value = 'amounts' === $mode ? self::cents( $p['amount'] ?? null ) : 1;
@@ -99,8 +99,8 @@ final class PDS_Finance_Splits {
     }
     public static function persist( $id, $uid, $finance ) {
         global $wpdb; if ( ! array_key_exists( '_split_rows', $finance ) || null === $finance['_split_rows'] ) { return true; }
-        if ( false === $wpdb->delete( $wpdb->prefix . 'pds_fin_splits', array( 'expense_id' => $id, 'user_id' => $uid ) ) ) { return PDS_Finance::error( 'Não foi possível salvar a divisão.', 500 ); }
-        foreach ( $finance['_split_rows'] as $row ) { if ( false === $wpdb->insert( $wpdb->prefix . 'pds_fin_splits', $row + array( 'expense_id' => $id, 'user_id' => $uid ) ) ) { return PDS_Finance::error( 'Não foi possível salvar todos os participantes.', 500 ); } }
+        if ( false === $wpdb->delete( $wpdb->prefix . 'pds_fin_splits', array( 'expense_id' => $id, 'space_id' => $uid ) ) ) { return PDS_Finance::error( 'Não foi possível salvar a divisão.', 500 ); }
+        foreach ( $finance['_split_rows'] as $row ) { if ( false === PDS_Finance_Spaces::insert( $wpdb->prefix . 'pds_fin_splits', $row + array( 'expense_id' => $id, 'space_id' => $uid ) ) ) { return PDS_Finance::error( 'Não foi possível salvar todos os participantes.', 500 ); } }
         return true;
     }
     public static function names( $expense, $uid ) {
@@ -114,32 +114,32 @@ final class PDS_Finance_Splits {
         return array( 'expense_id' => (int) $e['id'], 'description' => $e['description'], 'source_start' => $first, 'start_installment' => $start, 'installment_total' => (int) $e['installments'], 'basis_amount' => (float) ( $basis / 100 ), 'schedule' => $parts, 'sharing' => array( 'mode' => $mode, 'include_owner' => array_key_exists( 0, $weights ), 'person_id' => count( $people ) === 1 ? $people[0]['person_id'] : null, 'people' => $people, 'start_installment' => $start ) );
     }
     public static function context_request( WP_REST_Request $r ) {
-        global $wpdb; $uid = get_current_user_id(); $e = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d", absint( $r->get_url_params()['id'] ?? 0 ), $uid ), ARRAY_A ); if ( ! $e ) { return PDS_Finance::error( 'Gasto não encontrado ou sem acesso.', 404 ); }
+        global $wpdb; $uid = PDS_Finance_Spaces::id(); $e = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND space_id=%d", absint( $r->get_url_params()['id'] ?? 0 ), $uid ), ARRAY_A ); if ( ! $e ) { return PDS_Finance::error( 'Gasto não encontrado ou sem acesso.', 404 ); }
         $start = $r->get_param( 'start_installment' ); if ( null !== $start && ( ! self::positive( $start ) || (int) $start < (int) $e['installment_start'] || (int) $start > (int) $e['installments'] ) ) { return PDS_Finance::error( 'Parcela inicial inválida.' ); }
         return self::context( $e, $uid, $start );
     }
     public static function apply( $id, $uid, $sharing ) {
-        global $wpdb; $old = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d FOR UPDATE", $id, $uid ), ARRAY_A ); if ( ! $old ) { return PDS_Finance::error( 'Gasto não encontrado ou sem acesso.', 404 ); }
+        global $wpdb; $old = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND space_id=%d FOR UPDATE", $id, $uid ), ARRAY_A ); if ( ! $old ) { return PDS_Finance::error( 'Gasto não encontrado ou sem acesso.', 404 ); }
         $r = new WP_REST_Request( 'PUT' ); $r->set_body_params( array_merge( $old, array( 'sharing' => $sharing ) ) );
         $finance = PDS_Finance::prepare( $r, $old, array(), $uid ); if ( is_wp_error( $finance ) ) { return $finance; }
         $data = array( 'person_id' => $finance['person_id'], 'sharing_mode' => $finance['sharing_mode'], 'sharing_start' => $finance['sharing_start'], 'updated_at' => current_time( 'mysql', true ) );
-        if ( false === $wpdb->update( $wpdb->prefix . 'pds_expenses', $data, array( 'id' => $id, 'user_id' => $uid ) ) ) { return PDS_Finance::error( 'Não foi possível atualizar a divisão.', 500 ); }
+        if ( false === PDS_Finance_Spaces::update( $wpdb->prefix . 'pds_expenses', $data, array( 'id' => $id, 'space_id' => $uid ) ) ) { return PDS_Finance::error( 'Não foi possível atualizar a divisão.', 500 ); }
         $saved = self::persist( $id, $uid, $finance ); return is_wp_error( $saved ) ? $saved : self::sync( $id, $uid );
     }
     public static function save_request( WP_REST_Request $r ) {
-        global $wpdb; $uid = get_current_user_id(); if ( ! $r->has_param( 'sharing' ) ) { return PDS_Finance::error( 'Informe a divisão.' ); }
+        global $wpdb; $uid = PDS_Finance_Spaces::id(); if ( ! $r->has_param( 'sharing' ) ) { return PDS_Finance::error( 'Informe a divisão.' ); }
         $wpdb->query( 'START TRANSACTION' ); $id = absint( $r->get_url_params()['id'] ?? 0 ); $saved = self::apply( $id, $uid, $r->get_param( 'sharing' ) );
         if ( is_wp_error( $saved ) ) { $wpdb->query( 'ROLLBACK' ); return $saved; } if ( false === $wpdb->query( 'COMMIT' ) ) { $wpdb->query( 'ROLLBACK' ); return PDS_Finance::error( 'Não foi possível confirmar a divisão.', 500 ); }
-        $entry = PDS_Expenses::get_entry( $id ); if ( ! is_wp_error( $entry ) ) { do_action( 'pds_expense_updated', $entry, $uid ); } return array( 'success' => true, 'id' => $id );
+        $entry = PDS_Expenses::get_entry( $id ); if ( ! is_wp_error( $entry ) ) { do_action( 'pds_expense_updated', $entry, get_current_user_id(), $uid ); } return array( 'success' => true, 'id' => $id );
     }
     public static function sync( $id, $uid ) {
-        global $wpdb; $e = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND user_id=%d FOR UPDATE", $id, $uid ), ARRAY_A ); if ( ! $e || $wpdb->last_error ) { return PDS_Finance::error( 'Não foi possível conferir o gasto compartilhado.', 500 ); }
-        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_receipts WHERE shared_expense_id=%d AND user_id=%d ORDER BY shared_installment_no,person_id FOR UPDATE", $id, $uid ), ARRAY_A ); if ( $wpdb->last_error ) { return PDS_Finance::error( 'Não foi possível conferir os reembolsos.', 500 ); }
+        global $wpdb; $e = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_expenses WHERE id=%d AND space_id=%d FOR UPDATE", $id, $uid ), ARRAY_A ); if ( ! $e || $wpdb->last_error ) { return PDS_Finance::error( 'Não foi possível conferir o gasto compartilhado.', 500 ); }
+        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_fin_receipts WHERE shared_expense_id=%d AND space_id=%d ORDER BY shared_installment_no,person_id FOR UPDATE", $id, $uid ), ARRAY_A ); if ( $wpdb->last_error ) { return PDS_Finance::error( 'Não foi possível conferir os reembolsos.', 500 ); }
         $allocations = self::previous_rows( $e, $uid ); $start = (int) ( $e['sharing_start'] ?: 1 ); $schedule = self::schedule( $id, $uid ); $parts = array(); $future = array(); $weights = array(); $expected = array();
         foreach ( $schedule as $p ) { $p['cents'] = self::cents( $p['amount'] ); $parts[ (int) $p['installment_no'] ] = $p; if ( (int) $p['installment_no'] >= $start ) { $future[] = $p; } }
         foreach ( $allocations as $a ) {
             $pid = (int) $a['person_id']; if ( $pid ) {
-                $person = $wpdb->get_row( $wpdb->prepare( "SELECT id,active FROM {$wpdb->prefix}pds_fin_people WHERE id=%d AND user_id=%d", $pid, $uid ), ARRAY_A ); $known = in_array( (string) $pid, array_column( $rows, 'person_id' ), true );
+                $person = $wpdb->get_row( $wpdb->prepare( "SELECT id,active FROM {$wpdb->prefix}pds_fin_people WHERE id=%d AND space_id=%d", $pid, $uid ), ARRAY_A ); $known = in_array( (string) $pid, array_column( $rows, 'person_id' ), true );
                 if ( ! $person || ( ! $known && ( ! $person['active'] || ! PDS_Finance_Sharing::enabled() ) ) ) { return PDS_Finance::error( 'Ative o compartilhamento e escolha pessoas próprias e ativas.', 409 ); }
             } $weights[ $pid ] = (int) $a['weight'];
         }
@@ -158,11 +158,11 @@ final class PDS_Finance_Splits {
             if ( 'received' === $row['status'] && ( ! $next || self::cents( $row['shared_planned_amount'] ) !== $next['cents'] || $row['shared_planned_on'] !== $next['part']['due_on'] || (int) $row['shared_installment_total'] !== (int) $next['part']['installment_total'] || ( null !== $row['shared_invoice_amount'] && self::cents( $row['shared_invoice_amount'] ) !== $next['part']['cents'] ) ) ) { return PDS_Finance::error( 'Já há reembolso recebido nessa parcela. Reverta o recebimento ou aplique a divisão somente às próximas parcelas.', 409 ); }
         }
         $now = current_time( 'mysql', true );
-        foreach ( $existing as $key => $row ) { if ( ! isset( $expected[ $key ] ) && false === $wpdb->delete( $wpdb->prefix . 'pds_fin_receipts', array( 'id' => $row['id'], 'user_id' => $uid ) ) ) { return PDS_Finance::error( 'Não foi possível remover previsões antigas.', 500 ); } }
+        foreach ( $existing as $key => $row ) { if ( ! isset( $expected[ $key ] ) && false === $wpdb->delete( $wpdb->prefix . 'pds_fin_receipts', array( 'id' => $row['id'], 'space_id' => $uid ) ) ) { return PDS_Finance::error( 'Não foi possível remover previsões antigas.', 500 ); } }
         foreach ( $expected as $key => $next ) {
             $old = $existing[ $key ] ?? null; if ( $old && 'received' === $old['status'] ) { continue; } $p = $next['part'];
             $data = array( 'person_id' => $next['person_id'], 'shared_installment_total' => (int) $p['installment_total'], 'shared_planned_amount' => PDS_Finance::decimal( $next['cents'] ), 'shared_planned_on' => $p['due_on'], 'shared_invoice_amount' => $p['amount'], 'amount' => PDS_Finance::decimal( $next['cents'] ), 'received_on' => $p['due_on'], 'description' => mb_substr( 'Reembolso · ' . $e['description'], 0, 150 ) . ' · ' . $p['installment_no'] . '/' . $p['installment_total'], 'updated_at' => $now );
-            $ok = $old ? $wpdb->update( $wpdb->prefix . 'pds_fin_receipts', $data, array( 'id' => $old['id'], 'user_id' => $uid ) ) : $wpdb->insert( $wpdb->prefix . 'pds_fin_receipts', $data + array( 'user_id' => $uid, 'account_id' => 0, 'status' => 'pending', 'notes' => '', 'source' => 'shared_card', 'shared_expense_id' => $id, 'shared_installment_no' => (int) $p['installment_no'], 'created_at' => $now ) );
+            $ok = $old ? PDS_Finance_Spaces::update( $wpdb->prefix . 'pds_fin_receipts', $data, array( 'id' => $old['id'], 'space_id' => $uid ) ) : PDS_Finance_Spaces::insert( $wpdb->prefix . 'pds_fin_receipts', $data + array( 'space_id' => $uid, 'account_id' => 0, 'status' => 'pending', 'notes' => '', 'source' => 'shared_card', 'shared_expense_id' => $id, 'shared_installment_no' => (int) $p['installment_no'], 'created_at' => $now ) );
             if ( false === $ok ) { return PDS_Finance::error( 'Não foi possível gerar todos os reembolsos.', 500 ); }
         }
         return true;

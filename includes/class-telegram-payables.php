@@ -5,10 +5,10 @@ defined( 'ABSPATH' ) || exit;
 final class PDS_Telegram_Payables {
     public static function draft( $uid, $telegram ) {
         global $wpdb; $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}pds_tg_payable_drafts WHERE user_id=%d AND telegram_id=%s AND expires_at>%d", $uid, $telegram, time() ), ARRAY_A );
-        if ( ! $row ) { return null; } $row['data'] = json_decode( $row['data'], true ); return is_array( $row['data'] ) ? $row : null;
+        if ( ! $row || ( (int) $row['finance_space_id'] ?: PDS_Finance_Spaces::personal( $uid ) ) !== PDS_Finance_Spaces::id() ) { return null; } $row['data'] = json_decode( $row['data'], true ); return is_array( $row['data'] ) ? $row : null;
     }
     private static function write( $draft ) {
-        global $wpdb; return false !== $wpdb->replace( $wpdb->prefix . 'pds_tg_payable_drafts', array( 'user_id' => get_current_user_id(), 'telegram_id' => $draft['telegram_id'], 'source_ref' => $draft['source_ref'], 'token' => $draft['token'], 'data' => wp_json_encode( $draft['data'] ), 'expires_at' => time() + 2 * HOUR_IN_SECONDS ) );
+        global $wpdb; return false !== $wpdb->replace( $wpdb->prefix . 'pds_tg_payable_drafts', array( 'user_id' => get_current_user_id(), 'finance_space_id' => PDS_Finance_Spaces::id(), 'telegram_id' => $draft['telegram_id'], 'source_ref' => $draft['source_ref'], 'token' => $draft['token'], 'data' => wp_json_encode( $draft['data'] ), 'expires_at' => time() + 2 * HOUR_IN_SECONDS ) );
     }
     private static function category( $hint ) {
         $hint = $hint ?? 'Contas e serviços';
@@ -37,7 +37,7 @@ final class PDS_Telegram_Payables {
     private static function finish( $job, $draft, $confirmed ) {
         global $wpdb; $uid = get_current_user_id(); wp_cache_delete( $uid, 'user_meta' ); wp_cache_delete( 'pds_telegram_settings', 'options' );
         $link = PDS_Telegram::link( $uid ); $config = PDS_Telegram_Client::settings();
-        if ( ! $link || $link['telegram_id'] !== $job['telegram_id'] || ! $config['enabled'] || $link['consent_provider'] !== $config['ai_provider'] || ! pds_user_can_access_service( 'gastos' ) ) { return PDS_Telegram::reply( 'O vínculo ou o acesso a Meu Financeiro mudou. Confira o portal antes de reenviar.' ); }
+        if ( ! $link || $link['telegram_id'] !== $job['telegram_id'] || ! $config['enabled'] || $link['consent_provider'] !== $config['ai_provider'] || ! pds_user_can_access_service( 'gastos' ) || ! PDS_Telegram_Spaces::live( $job ) ) { return PDS_Telegram::reply( 'O vínculo ou o acesso a Meu Financeiro mudou. Confira o portal antes de reenviar.' ); }
         $data = $draft['data']; $missing = array();
         if ( ! is_string( $data['description'] ) || mb_strlen( trim( $data['description'] ) ) < 2 || mb_strlen( $data['description'] ) > 180 ) { $missing[] = 'descrição curta da conta'; }
         if ( ! PDS_Expenses::valid_date( $data['due_on'] ) ) { $missing[] = 'data do primeiro vencimento'; }
@@ -63,7 +63,7 @@ final class PDS_Telegram_Payables {
         return $data['description'] . "\nValor previsto: " . ( null === $data['amount'] ? 'a definir' : 'R$ ' . number_format( (float) $data['amount'], 2, ',', '.' ) ) . "\nPrimeiro vencimento: " . implode( '/', array_reverse( explode( '-', $data['due_on'] ) ) ) . ( ( $data['recurrence'] ?? '' ) === 'monthly' || ! empty( $data['recurring_id'] ) ? "\nRecorrência: mensal" . ( ! empty( $data['occurrences'] ) ? ' por ' . $data['occurrences'] . ' meses' : '' ) : "\nLançamento único" ) . "\nBaixa: quando você informar o pagamento pelo Telegram (/baixar) ou confirmar no portal.";
     }
     public static function saved_reply( $id ) {
-        if ( ! pds_user_can_access_service( 'gastos' ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira seu acesso a Meu Financeiro.' ); }
+        if ( ! pds_user_can_access_service( 'gastos' ) || ! PDS_Finance_Spaces::can() ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira seu acesso a Meu Financeiro.' ); }
         $row = PDS_Finance_Planning::get_payable( $id );
         if ( is_wp_error( $row ) ) { return PDS_Telegram::reply( 'Esta mensagem já foi processada. Confira Contas a pagar no portal.' ); }
         return PDS_Telegram::reply( "Conta a pagar cadastrada!\n" . self::summary( $row ) . "\nConfira em Meu Financeiro → Contas a pagar. O cadastro não altera o saldo." );

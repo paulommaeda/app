@@ -1,5 +1,9 @@
 # Fatura de cartão compartilhada e divisão de compras
 
+Desde **1.18.0**, o portal também oferece financeiros compartilhados com usuários
+WordPress e Telegram individuais. As permissões e o financeiro selecionado se aplicam
+às operações deste guia. Consulte [FINANCEIRO-COMPARTILHADO.md](FINANCEIRO-COMPARTILHADO.md).
+
 O compartilhamento existe desde **1.10.0**; a divisão entre várias pessoas está
 disponível na versão **1.11.0**. A funcionalidade é opcional e começa desativada.
 

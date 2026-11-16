@@ -66,12 +66,13 @@ final class PDS_Telegram_Router {
         elseif ( preg_match( '#^/(?:contapagar|contasapagar|pagar|boleto)\s+(.+)$#us', $text, $m ) ) { $text = $m[1]; $forced = 'payable'; }
         elseif ( preg_match( '#^/(?:abastecer|abastecimento)\s+(.+)$#us', $text, $m ) ) { $text = $m[1]; $forced = 'fuel'; }
         elseif ( strpos( $text, '/' ) === 0 ) { return PDS_Telegram::reply( 'Comando não reconhecido. Use /ajuda, /gastos, /recebimentos ou /combustivel.' ); }
-        $fuel_access = pds_user_can_access_service( 'combustivel' ); $finance_access = pds_user_can_access_service( 'gastos' );
+        $fuel_access = pds_user_can_access_service( 'combustivel' ); $finance_access = pds_user_can_access_service( 'gastos' ) && PDS_Finance_Spaces::can();
         $income_hint = (bool) preg_match( '/\b(?:recebi|receber|recebimento|entrou|depositaram)\b|me pagaram/iu', $text );
         $fuel_hint = ! $income_hint && (bool) preg_match( '/abastec|od[oô]metro|(?:completei|encheu|encher).*tanque|litros?.*(?:gasolina|etanol|diesel)/iu', $text );
         if ( ( 'fuel' === $forced || ( ! $forced && $fuel_hint ) ) && ! $fuel_access ) { return PDS_Telegram::reply( 'O serviço Meu Combustível não está liberado para sua conta.' ); }
         if ( ( in_array( $forced, array( 'expense', 'receipt', 'payable', 'settlement' ), true ) || ( ! $forced && $income_hint ) ) && ! $finance_access ) { return PDS_Telegram::reply( 'O serviço Meu Financeiro não está liberado para sua conta.' ); }
         if ( ! $fuel_access && ! $finance_access ) { return PDS_Telegram::reply( 'Não há um serviço liberado para registrar essa mensagem. Consulte sua conta no portal.' ); }
+        if ( $finance_access && ! PDS_Finance_Spaces::can( 'write' ) && 'fuel' !== $forced && ! $fuel_hint ) { return PDS_Telegram::reply( 'Seu acesso permite apenas consultar este financeiro. Use /contas, /categorias ou consulte o dashboard no portal.' ); }
         $config = PDS_Telegram_Client::settings();
         if ( ( $link['consent_provider'] ?? 'openai' ) !== $config['ai_provider'] ) { return PDS_Telegram::reply( 'O portal mudou o provedor de reconhecimento para ' . PDS_Telegram_Client::provider_name() . '. Abra Minha conta → Telegram e confirme o uso das mensagens.' ); }
         if ( isset( $payload['audio'] ) && ( $payload['audio']['duration'] <= 0 || $payload['audio']['duration'] > (int) $config['voice_seconds'] || $payload['audio']['size'] > PDS_Telegram_Client::MAX_AUDIO_BYTES ) ) { return PDS_Telegram::reply( 'Envie um áudio de até ' . (int) $config['voice_seconds'] . ' segundos e 5 MB, com um lançamento por mensagem.' ); }
@@ -99,6 +100,7 @@ final class PDS_Telegram_Router {
         $kind = $result['intent'];
         if ( ! isset( $services[ $kind ] ) || ( $forced && $kind !== $forced ) ) { return PDS_Telegram::reply( 'Envie um gasto, recebimento ou abastecimento por mensagem. Exemplo de recebimento: recebi 100 reais na conta C6 pessoa jurídica. Exemplo de previsão: vou receber 500 reais dia 20 na conta C6 PJ. Cadastre uma conta de luz informando o vencimento. Para outro assunto, use o portal.' ); }
         if ( ! pds_user_can_access_service( $services[ $kind ] ) ) { return PDS_Telegram::reply( 'O acesso a esse serviço mudou. Confira sua conta no portal.' ); }
+        if ( 'fuel' !== $kind && ! PDS_Telegram_Spaces::live( $job ) ) { return PDS_Telegram::reply( 'O acesso ao financeiro mudou durante o reconhecimento. Confira /financeiros antes de reenviar.' ); }
         foreach ( $pending as $pending_kind => $draft ) {
             if ( $pending_kind !== $kind ) { return PDS_Telegram::reply( 'Há um lançamento de outro serviço pendente. Complete-o ou use /cancelar antes de começar este novo lançamento.' ); }
         }

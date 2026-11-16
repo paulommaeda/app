@@ -146,7 +146,7 @@ final class PDS_Telegram {
         if ( ! $link && ! preg_match( '/^\/start(?:@[A-Za-z0-9_]+)?\s+pds_[a-f0-9]{32}$/D', $payload['text'] ) ) { $payload = array( 'text' => '/start', 'date' => $payload['date'] ); }
         $pending = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}pds_tg_updates WHERE telegram_id=%s AND status IN ('pending','processing','notify')", $telegram ) );
         if ( $pending >= 10 ) { return array( 'ok' => true, 'limited' => true ); }
-        $result = $wpdb->insert( $wpdb->prefix . 'pds_tg_updates', array( 'event_key' => $event_key, 'bot_id' => $config['bot_id'], 'user_id' => (int) ( $link['user_id'] ?? 0 ), 'telegram_id' => $telegram, 'chat_id' => $chat, 'payload' => wp_json_encode( $payload ), 'created_at' => current_time( 'mysql', true ) ) );
+        $result = $wpdb->insert( $wpdb->prefix . 'pds_tg_updates', array( 'event_key' => $event_key, 'bot_id' => $config['bot_id'], 'user_id' => (int) ( $link['user_id'] ?? 0 ), 'finance_space_id' => $link ? PDS_Telegram_Spaces::selected( $link ) : 0, 'telegram_id' => $telegram, 'chat_id' => $chat, 'payload' => wp_json_encode( $payload ), 'created_at' => current_time( 'mysql', true ) ) );
         if ( ! $result ) { return new WP_Error( 'pds_tg_queue', 'Não foi possível receber a mensagem.', array( 'status' => 503 ) ); }
         if ( ! wp_next_scheduled( 'pds_tg_process_once' ) ) { wp_schedule_single_event( time(), 'pds_tg_process_once' ); }
         if ( ! defined( 'DISABLE_WP_CRON' ) || ! DISABLE_WP_CRON ) {
@@ -206,6 +206,13 @@ final class PDS_Telegram {
                     else { $reply = self::handle( $job, is_array( $payload ) ? $payload : array() ); }
                     if ( ! is_array( $reply ) || ! is_string( $reply['text'] ?? null ) ) { throw new RuntimeException( 'invalid_reply' ); }
                 } catch ( Throwable $error ) { $reply = self::reply( 'Não consegui concluir esta mensagem. Confira o histórico no portal antes de reenviar.' ); }
+                $job['finance_space_id'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT finance_space_id FROM {$wpdb->prefix}pds_tg_updates WHERE id=%d", $job['id'] ) );
+                // Delayed delivery must not disclose a shared balance or draft after access was revoked.
+                if ( (int) $job['user_id'] && (int) $job['finance_space_id'] ) {
+                    wp_set_current_user( (int) $job['user_id'] ); wp_cache_delete( (int) $job['user_id'], 'user_meta' );
+                    $delivery_space = PDS_Finance_Spaces::row( (int) $job['finance_space_id'] );
+                    if ( ( ! $delivery_space || 'shared' === $delivery_space['kind'] || in_array( $job['record_service'], array( 'gastos', 'recebimentos', 'contas_pagar', 'baixas' ), true ) ) && ! PDS_Finance_Spaces::can( 'read', (int) $job['finance_space_id'] ) ) { $reply = self::reply( 'O acesso a este financeiro mudou. Use /financeiros para escolher um financeiro disponível. Confira os lançamentos no portal.' ); }
+                }
                 $sent = PDS_Telegram_Client::telegram( 'sendMessage', array_merge( $reply, array( 'chat_id' => $job['chat_id'], 'link_preview_options' => array( 'is_disabled' => true ) ) ) );
                 if ( isset( $payload['callback_id'] ) ) { PDS_Telegram_Client::telegram( 'answerCallbackQuery', array( 'callback_query_id' => $payload['callback_id'] ) ); }
                 $failed = is_wp_error( $sent );
@@ -214,10 +221,10 @@ final class PDS_Telegram {
                     'payload' => null, 'response' => $failed ? wp_json_encode( $reply ) : null,
                     'locked_until' => $failed ? time() + 60 : 0, 'error_code' => $failed ? 'telegram_delivery' : '',
                 ), array( 'id' => $job['id'] ) );
-                wp_set_current_user( $previous_uid );
+                PDS_Finance_Spaces::reset(); wp_set_current_user( $previous_uid );
             }
         } finally {
-            wp_set_current_user( $previous_uid );
+            PDS_Finance_Spaces::reset(); wp_set_current_user( $previous_uid );
             update_option( 'pds_tg_last_run', current_time( 'mysql', true ), false );
             $wpdb->delete( $wpdb->options, array( 'option_name' => 'pds_tg_worker_mutex', 'option_value' => $lock ) ); wp_cache_delete( 'pds_tg_worker_mutex', 'options' ); wp_cache_delete( 'notoptions', 'options' );
         }
@@ -238,12 +245,13 @@ final class PDS_Telegram {
         if ( get_user_meta( $link['user_id'], 'pds_suspended', true ) ) { return self::reply( 'O acesso desta conta ao portal está suspenso. Consulte o responsável pelo portal.' ); }
         wp_set_current_user( $link['user_id'] );
         $wpdb->update( $wpdb->prefix . 'pds_tg_updates', array( 'user_id' => (int) $link['user_id'] ), array( 'id' => $job['id'] ) );
-        if ( in_array( $text, array( '/start', '/ajuda', '/help' ), true ) ) { return self::reply( "Gasto pessoal: gastei 35 reais no almoço hoje, no Pix.\n\nRecebimento: recebi 100 reais na conta C6 pessoa jurídica.\n\nAbastecimento: Hoje abasteci o HB20 com gasolina, 30 litros a R$ 6,20. Paguei R$ 180, odômetro 45.200 e completei o tanque.\n\n/gastos — ajuda para gastos pessoais\n/contasapagar — contas únicas ou mensais, sem baixa automática\n/baixar — baixar conta ou recebimento previsto\n/pendentes — escolher uma previsão para baixa\n/recebimentos — recebimentos realizados ou previstos\n/contas — listar contas financeiras\n/categorias — categorias de gastos\n/veiculos — listar veículos\n/veiculo ID — definir o padrão\n/confirmar — salvar resumo pendente\n/cancelar — descartar pendência\n/desvincular — remover o vínculo" ); }
+        $space_reply = PDS_Telegram_Spaces::prepare( $job, $payload, $link ); if ( null !== $space_reply ) { return $space_reply; }
+        if ( in_array( $text, array( '/start', '/ajuda', '/help' ), true ) ) { return self::reply( "Gasto pessoal: gastei 35 reais no almoço hoje, no Pix.\n\nRecebimento: recebi 100 reais na conta C6 pessoa jurídica.\n\nAbastecimento: Hoje abasteci o HB20 com gasolina, 30 litros a R$ 6,20. Paguei R$ 180, odômetro 45.200 e completei o tanque.\n\n/financeiros — listar financeiros pessoais e compartilhados\n/financeiro ID — escolher o destino dos próximos lançamentos\n/gastos — ajuda para gastos pessoais\n/contasapagar — contas únicas ou mensais, sem baixa automática\n/baixar — baixar conta ou recebimento previsto\n/pendentes — escolher uma previsão para baixa\n/recebimentos — recebimentos realizados ou previstos\n/contas — listar contas financeiras\n/categorias — categorias de gastos\n/veiculos — listar veículos\n/veiculo ID — definir o padrão\n/confirmar — salvar resumo pendente\n/cancelar — descartar pendência\n/desvincular — remover o vínculo" ); }
         if ( (int) $job['record_id'] > 0 ) { $classes = array( 'gastos' => 'PDS_Telegram_Expenses', 'recebimentos' => 'PDS_Telegram_Receipts', 'contas_pagar' => 'PDS_Telegram_Payables', 'baixas' => 'PDS_Telegram_Settlements', 'combustivel' => 'PDS_Telegram_Fuel' ); $class = $classes[ $job['record_service'] ?? 'combustivel' ] ?? null; return $class ? $class::saved_reply( (int) $job['record_id'] ) : self::reply( 'Esta mensagem já foi processada. Confira seu histórico no portal.' ); }
         /** Future modules must enforce their own service and record permissions. */
         $custom = apply_filters( 'pds_telegram_reply', null, $payload, $link );
         if ( is_array( $custom ) ) { return $custom; }
-        return PDS_Telegram_Router::handle( $job, $payload, $link );
+        return PDS_Telegram_Spaces::caption( PDS_Telegram_Router::handle( $job, $payload, $link ) );
     }
 
     public static function cleanup() {
